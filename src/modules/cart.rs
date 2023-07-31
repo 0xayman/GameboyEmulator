@@ -3,20 +3,20 @@ use std::{fs::File, io::Read};
 use crate::constants::constants;
 
 pub struct Cart {
-    pub entry: [u8; 4],
-    pub logo: [u8; 0x30],
-    pub title: [char; 16],
-    pub new_lic_code: u16,
-    pub sgb_flag: u8,
-    pub cart_type: u8,
-    pub rom_size: u8,
-    pub ram_size: u8,
-    pub dest_code: u8,
-    pub old_lic_code: u8,
-    pub version: u8,
-    pub checksum: u8,
-    pub global_checksum: u16,
-    pub data: Vec<u8>,
+    entry: [u8; 4],
+    logo: [u8; 0x30],
+    title: [char; 16],
+    new_lic_code: u16,
+    sgb_flag: u8,
+    cart_type: u8,
+    rom_size: u8,
+    ram_size: u8,
+    dest_code: u8,
+    old_lic_code: u8,
+    version: u8,
+    checksum: u8,
+    global_checksum: u16,
+    data: Vec<u8>,
 }
 
 impl Cart {
@@ -37,6 +37,14 @@ impl Cart {
             global_checksum: 0,
             data: Vec::new(),
         }
+    }
+
+    pub fn read(&self, address: u16) -> u8 {
+        return self.data[address as usize];
+    }
+
+    pub fn write(&mut self, address: u16, data: u8) {
+        self.data[address as usize] = data;
     }
 
     pub fn load(&mut self, filename: &str) -> bool {

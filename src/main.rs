@@ -1,9 +1,26 @@
+#![allow(warnings)]
 use std::env;
 
 mod modules {
+    pub mod bus;
     pub mod cart;
+    pub mod common;
     pub mod cpu;
     pub mod emu;
+    pub mod instruction;
+    pub mod registers;
+}
+
+mod enums {
+    pub mod address_mode;
+    pub mod condition_type;
+    pub mod instruction_type;
+    pub mod register_type;
+}
+
+mod helpers {
+    pub mod cpu_processor;
+    pub mod cpu_util;
 }
 
 pub mod constants;

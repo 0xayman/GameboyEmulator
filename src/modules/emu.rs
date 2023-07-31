@@ -1,6 +1,7 @@
 use std::thread;
 use std::time::Duration;
 
+use crate::modules::bus::Bus;
 use crate::modules::cart::Cart;
 use crate::modules::cpu::CPU;
 
@@ -21,9 +22,12 @@ impl Emu {
 
     pub fn run(&mut self, rom_path: &str) {
         let mut cart = Cart::new();
-        let cpu = CPU::new();
-
         cart.load(rom_path);
+
+        let mut bus = Bus::new(&mut cart);
+        let mut cpu = CPU::new(&mut bus);
+
+        cpu.init();
 
         while self.running {
             if self.paused {
@@ -41,4 +45,6 @@ impl Emu {
 
         return;
     }
+
+    pub fn cycles(cycles: u32) {}
 }

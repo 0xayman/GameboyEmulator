@@ -19,6 +19,7 @@ mod enums {
 }
 
 mod helpers {
+    pub mod cpu_fetch_data;
     pub mod cpu_processor;
     pub mod cpu_util;
 }

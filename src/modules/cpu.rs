@@ -1,7 +1,5 @@
 use crate::enums::address_mode::AddressMode;
 use crate::enums::instruction_type::InstructionType;
-use crate::helpers::cpu_processor::processor;
-use crate::helpers::cpu_util::util;
 use crate::modules::bus::Bus;
 use crate::modules::emu::Emu;
 use crate::modules::instruction::Instruction;
@@ -10,16 +8,16 @@ use crate::modules::registers::Registers;
 pub struct CPU<'a> {
     pub registers: Registers,
     pub fetched_data: u16,
-    mem_dest: u16,
-    dest_is_mem: bool,
-    opcode: u8,
-    instruction: Instruction,
+    pub mem_dest: u16,
+    pub dest_is_mem: bool,
+    pub opcode: u8,
+    pub instruction: Instruction,
 
-    halted: bool,
-    stepping: bool,
+    pub halted: bool,
+    pub stepping: bool,
 
     pub int_master_enabled: bool,
-    bus: &'a mut Bus<'a>,
+    pub bus: &'a mut Bus<'a>,
 }
 
 impl<'a> CPU<'a> {
@@ -47,41 +45,6 @@ impl<'a> CPU<'a> {
         self.opcode = self.bus.read(self.registers.pc);
         self.registers.pc += 1;
         self.instruction = Instruction::instruction_by_opcode(self.opcode);
-    }
-
-    fn fetch_data(&mut self) {
-        self.mem_dest = 0;
-        self.dest_is_mem = false;
-
-        match &self.instruction.addr_mode {
-            AddressMode::IMP => return,
-            AddressMode::R => self.fetched_data = util::read_register(self, &self.instruction.reg1),
-            AddressMode::RD8 => {
-                self.fetched_data = self.bus.read(self.registers.pc) as u16;
-                Emu::cycles(1);
-                self.registers.pc += 1;
-                return;
-            }
-            AddressMode::D16 => {
-                let lo: u16 = self.bus.read(self.registers.pc) as u16;
-
-                Emu::cycles(1);
-
-                let hi: u16 = self.bus.read(self.registers.pc + 1) as u16;
-                Emu::cycles(1);
-
-                self.fetched_data = lo | (hi << 8);
-                self.registers.pc += 2;
-                return;
-            }
-            other => panic!("Address mode not implemented: {:#?}", other),
-        }
-    }
-
-    fn execute(&mut self) {
-        let processor = processor::get_processor_by_instruction_type(&self.instruction.ins_type);
-
-        processor(self);
     }
 
     pub fn step(&mut self) -> bool {

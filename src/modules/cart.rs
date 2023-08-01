@@ -44,7 +44,7 @@ impl Cart {
     }
 
     pub fn write(&mut self, address: u16, data: u8) {
-        self.data[address as usize] = data;
+        panic!("CART WRITE {:04X} {:02X}", address, data)
     }
 
     pub fn load(&mut self, filename: &str) -> bool {

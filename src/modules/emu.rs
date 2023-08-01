@@ -1,8 +1,6 @@
-use std::thread;
-use std::time::Duration;
-
 use crate::modules::bus::Bus;
 use crate::modules::cart::Cart;
+use crate::modules::common;
 use crate::modules::cpu::CPU;
 
 pub struct Emu {
@@ -31,7 +29,7 @@ impl Emu {
 
         while self.running {
             if self.paused {
-                thread::sleep(Duration::from_millis(10));
+                common::delay(10);
                 continue;
             }
 

@@ -1,4 +1,6 @@
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
+#[allow(dead_code)]
+
 pub enum InstructionType {
     NONE,
     NOP,

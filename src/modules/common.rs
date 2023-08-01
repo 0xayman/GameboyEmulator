@@ -1,3 +1,6 @@
+use std::thread;
+use std::time::Duration;
+
 pub fn bit(value: u8, bit: u8) -> bool {
     (value & (1 << bit)) != 0
 }
@@ -14,4 +17,6 @@ pub fn between(value: u8, min: u8, max: u8) -> bool {
     value >= min && value <= max
 }
 
-fn delay(ms: u32) {}
+pub fn delay(ms: u32) {
+    thread::sleep(Duration::from_millis(10));
+}

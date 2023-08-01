@@ -1,4 +1,5 @@
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone, Copy)]
+#[allow(dead_code)]
 pub enum AddressMode {
     IMP,
     RD16,

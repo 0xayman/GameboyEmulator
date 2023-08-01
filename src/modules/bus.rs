@@ -1,5 +1,4 @@
 use crate::modules::cart::Cart;
-
 pub struct Bus<'a> {
     cart: &'a mut Cart,
 }
@@ -20,6 +19,18 @@ impl<'a> Bus<'a> {
         if address < 0x8000 {
             self.cart.write(address, value);
         }
-        panic!("Bus write not implemented")
+        panic!("Bus write not implemented for address: {:X}", address)
+    }
+
+    pub fn read16(&self, address: u16) -> u16 {
+        let lo: u16 = self.read(address) as u16;
+        let hi: u16 = self.read(address + 1) as u16;
+
+        return lo | (hi << 8);
+    }
+
+    pub fn write16(&mut self, address: u16, data: u16) {
+        self.write(address + 1, ((data >> 8) & 0xFF) as u8);
+        self.write(address, (data & 0xFF) as u8);
     }
 }

@@ -39,6 +39,7 @@ impl Instruction {
 
     pub fn instruction_by_opcode(opcode: u8) -> Instruction {
         match opcode {
+            // 0x0x
             0x00 => Instruction::default(),
             0x01 => Instruction {
                 ins_type: InstructionType::LD,
@@ -84,6 +85,8 @@ impl Instruction {
                 reg1: RegisterType::C,
                 ..Instruction::default()
             },
+
+            // 0x1x
             0x11 => Instruction {
                 ins_type: InstructionType::LD,
                 addr_mode: AddressMode::RD16,
@@ -123,6 +126,7 @@ impl Instruction {
                 ..Instruction::default()
             },
 
+            // 0x2x
             0x21 => Instruction {
                 ins_type: InstructionType::LD,
                 addr_mode: AddressMode::RD16,
@@ -162,6 +166,7 @@ impl Instruction {
                 ..Instruction::default()
             },
 
+            // 0x3x
             0x31 => Instruction {
                 ins_type: InstructionType::LD,
                 addr_mode: AddressMode::RD16,
@@ -201,6 +206,7 @@ impl Instruction {
                 ..Instruction::default()
             },
 
+            // 0x4x
             0x40 => Instruction {
                 ins_type: InstructionType::LD,
                 addr_mode: AddressMode::RR,
@@ -314,6 +320,7 @@ impl Instruction {
                 ..Instruction::default()
             },
 
+            // 0x5x
             0x50 => Instruction {
                 ins_type: InstructionType::LD,
                 addr_mode: AddressMode::RR,
@@ -427,6 +434,7 @@ impl Instruction {
                 ..Instruction::default()
             },
 
+            // 0x6x
             0x60 => Instruction {
                 ins_type: InstructionType::LD,
                 addr_mode: AddressMode::RR,
@@ -540,6 +548,7 @@ impl Instruction {
                 ..Instruction::default()
             },
 
+            // 0x7x
             0x70 => Instruction {
                 ins_type: InstructionType::LD,
                 addr_mode: AddressMode::MRR,
@@ -650,6 +659,7 @@ impl Instruction {
                 ..Instruction::default()
             },
 
+            // 0xAx
             0xAF => Instruction {
                 ins_type: InstructionType::XOR,
                 addr_mode: AddressMode::R,
@@ -657,12 +667,18 @@ impl Instruction {
                 ..Instruction::default()
             },
 
+            // 0xBx
+
+            // 0xCx
             0xC3 => Instruction {
                 ins_type: InstructionType::JP,
                 addr_mode: AddressMode::D16,
                 ..Instruction::default()
             },
 
+            // 0xDx
+
+            // 0xEx
             0xE2 => Instruction {
                 ins_type: InstructionType::LD,
                 addr_mode: AddressMode::MRR,
@@ -677,6 +693,7 @@ impl Instruction {
                 ..Instruction::default()
             },
 
+            // 0xFx
             0xF2 => Instruction {
                 ins_type: InstructionType::LD,
                 addr_mode: AddressMode::RMR,
@@ -695,7 +712,7 @@ impl Instruction {
                 reg1: RegisterType::A,
                 ..Instruction::default()
             },
-            other => panic!("Unknown opcode: {:#04x}", other),
+            other => panic!("INSTRUCTION NOT FOUND"),
         }
     }
 

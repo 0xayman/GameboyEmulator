@@ -2,6 +2,7 @@ use crate::modules::bus::Bus;
 use crate::modules::cart::Cart;
 use crate::modules::common;
 use crate::modules::cpu::CPU;
+use crate::modules::ram::RAM;
 
 pub struct Emu {
     paused: bool,
@@ -22,7 +23,8 @@ impl Emu {
         let mut cart = Cart::new();
         cart.load(rom_path);
 
-        let mut bus = Bus::new(&mut cart);
+        let mut ram = RAM::new();
+        let mut bus = Bus::new(&mut cart, &mut ram);
         let mut cpu = CPU::new(&mut bus);
 
         cpu.init();

@@ -17,6 +17,8 @@ pub struct CPU<'a> {
     pub stepping: bool,
 
     pub int_master_enabled: bool,
+    pub ie_register: u8,
+
     pub bus: &'a mut Bus<'a>,
 }
 
@@ -31,7 +33,10 @@ impl<'a> CPU<'a> {
             instruction: Instruction::new(),
             halted: false,
             stepping: false,
+
             int_master_enabled: false,
+            ie_register: 0,
+
             bus: bus,
         }
     }
@@ -42,7 +47,7 @@ impl<'a> CPU<'a> {
     }
 
     fn fetch_instruction(&mut self) {
-        self.opcode = self.bus.read(self.registers.pc);
+        self.opcode = Bus::read(&self, self.registers.pc);
         self.registers.pc += 1;
         self.instruction = Instruction::instruction_by_opcode(self.opcode);
     }
@@ -62,5 +67,13 @@ impl<'a> CPU<'a> {
             self.execute();
         }
         return true;
+    }
+
+    pub fn get_ie_register(&self) -> u8 {
+        return self.ie_register;
+    }
+
+    pub fn set_ie_register(&mut self, value: u8) {
+        self.ie_register = value;
     }
 }

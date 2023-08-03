@@ -8,6 +8,7 @@ mod modules {
     pub mod cpu;
     pub mod emu;
     pub mod instruction;
+    pub mod ram;
     pub mod registers;
 }
 

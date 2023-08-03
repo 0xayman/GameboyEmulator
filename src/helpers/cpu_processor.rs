@@ -1,14 +1,16 @@
+use std::borrow::BorrowMut;
+
 use crate::enums::address_mode::AddressMode;
 use crate::enums::condition_type::ConditionType;
 use crate::enums::instruction_type::InstructionType;
 use crate::enums::register_type::RegisterType;
+use crate::modules::bus::Bus;
 use crate::modules::common::set_bit;
 use crate::modules::cpu::CPU;
 use crate::modules::emu::Emu;
 
 impl<'a> CPU<'a> {
     fn process_none(&mut self) {
-        println!("INVALID INSTRUCTION");
         return;
     }
 
@@ -22,9 +24,9 @@ impl<'a> CPU<'a> {
         if self.dest_is_mem {
             if self.instruction.reg2 >= RegisterType::AF {
                 Emu::cycles(1);
-                self.bus.write16(self.mem_dest, self.fetched_data)
+                Bus::write16(self, self.mem_dest, self.fetched_data);
             } else {
-                self.bus.write(self.mem_dest, self.fetched_data as u8)
+                Bus::write(self, self.mem_dest, self.fetched_data as u8);
             }
             return;
         }
@@ -48,6 +50,19 @@ impl<'a> CPU<'a> {
         }
 
         self.set_register(self.instruction.reg2, self.fetched_data);
+    }
+
+    fn process_ldh(&mut self) {
+        if self.instruction.reg1 == RegisterType::A {
+            self.set_register(
+                self.instruction.reg1,
+                Bus::read(&self, (0xFF | self.fetched_data)) as u16,
+            );
+        } else {
+            self::Bus::write(self, (0xFF | self.fetched_data), self.registers.a);
+        }
+
+        Emu::cycles(1);
     }
 
     fn process_xor(&mut self) {
@@ -95,10 +110,14 @@ impl<'a> CPU<'a> {
             InstructionType::NONE => self.process_none(),
             InstructionType::NOP => self.process_nop(),
             InstructionType::LD => self.process_ld(),
+            InstructionType::LDH => self.process_ldh(),
             InstructionType::JP => self.process_jp(),
             InstructionType::DI => self.process_di(),
             InstructionType::XOR => self.process_xor(),
-            other => panic!("Cannot Process this instruction: {:#?}", other),
+            other => panic!(
+                "Cannot Process instruction: {:#?} with opcode: {}",
+                other, self.opcode
+            ),
         };
     }
 }

@@ -57,28 +57,40 @@ impl<'a> CPU<'a> {
                 self.fetched_data =
                     Bus::read(&self, self.read_register(self.instruction.reg2)) as u16;
                 Emu::cycles(1);
-                self.set_register(RegisterType::HL, self.read_register(RegisterType::HL) + 1);
+                self.set_register(
+                    RegisterType::HL,
+                    self.read_register(RegisterType::HL).wrapping_add(1),
+                );
                 return;
             }
             AddressMode::RHLD => {
                 self.fetched_data =
                     Bus::read(&self, self.read_register(self.instruction.reg2)) as u16;
                 Emu::cycles(1);
-                self.set_register(RegisterType::HL, self.read_register(RegisterType::HL) - 1);
+                self.set_register(
+                    RegisterType::HL,
+                    self.read_register(RegisterType::HL).wrapping_sub(1),
+                );
                 return;
             }
             AddressMode::HLIR => {
                 self.fetched_data = self.read_register(self.instruction.reg2);
                 self.mem_dest = self.read_register(self.instruction.reg1);
                 self.dest_is_mem = true;
-                self.set_register(RegisterType::HL, self.read_register(RegisterType::HL) + 1);
+                self.set_register(
+                    RegisterType::HL,
+                    self.read_register(RegisterType::HL).wrapping_add(1),
+                );
                 return;
             }
             AddressMode::HLDR => {
                 self.fetched_data = self.read_register(self.instruction.reg2);
                 self.mem_dest = self.read_register(self.instruction.reg1);
                 self.dest_is_mem = true;
-                self.set_register(RegisterType::HL, self.read_register(RegisterType::HL) - 1);
+                self.set_register(
+                    RegisterType::HL,
+                    self.read_register(RegisterType::HL).wrapping_sub(1),
+                );
                 return;
             }
             AddressMode::RA8 => {

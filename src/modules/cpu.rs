@@ -30,7 +30,7 @@ impl<'a> CPU<'a> {
             mem_dest: 0,
             dest_is_mem: false,
             opcode: 0,
-            instruction: Instruction::new(),
+            instruction: Instruction::default(),
             halted: false,
             stepping: false,
 
@@ -60,8 +60,8 @@ impl<'a> CPU<'a> {
             self.fetch_data();
 
             println!(
-                "PC: {:#06X} | OPCODE: {:#04X} | INSTRUCTION: {:#?} | ADDRESS MODE: {:#?}",
-                pc, self.opcode, self.instruction.ins_type, self.instruction.addr_mode
+                "PC: {:#06X} | INSTRUCTION: {:#?} | OPCODE: {:02X} | NEXT: ({:2X})({:2X}) | A: {:02X} | BC: {:02X}{:02X} | DE: {:02X}{:02X} | HL: {:02X}{:02X} | Mode: {:#?}",
+                pc, self.instruction.ins_type, self.opcode, Bus::read(self, pc + 1), Bus::read(self, pc + 2), self.registers.a, self.registers.b, self.registers.c, self.registers.d, self.registers.e, self.registers.h, self.registers.l, self.instruction.addr_mode
             );
 
             self.execute();

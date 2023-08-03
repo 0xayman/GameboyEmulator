@@ -2,6 +2,10 @@ use crate::enums::{address_mode::AddressMode, register_type::RegisterType};
 use crate::modules::{cpu::CPU, emu::Emu};
 
 impl<'a> CPU<'a> {
+    fn reverse(n: u16) -> u16 {
+        ((n & 0xFF00) >> 8) | ((n & 0x00FF) << 8)
+    }
+
     pub fn read_register(&self, reg_type: RegisterType) -> u16 {
         match reg_type {
             RegisterType::A => return self.registers.a as u16,
@@ -13,10 +17,10 @@ impl<'a> CPU<'a> {
             RegisterType::H => return self.registers.h as u16,
             RegisterType::L => return self.registers.l as u16,
 
-            RegisterType::AF => return (self.registers.a as u16) << 8 | self.registers.f as u16,
-            RegisterType::BC => return (self.registers.b as u16) << 8 | self.registers.c as u16,
-            RegisterType::DE => return (self.registers.d as u16) << 8 | self.registers.e as u16,
-            RegisterType::HL => return (self.registers.h as u16) << 8 | self.registers.l as u16,
+            RegisterType::AF => return CPU::reverse(self.registers.a as u16),
+            RegisterType::BC => return CPU::reverse(self.registers.b as u16),
+            RegisterType::DE => return CPU::reverse(self.registers.d as u16),
+            RegisterType::HL => return CPU::reverse(self.registers.h as u16),
 
             RegisterType::SP => return self.registers.sp,
             RegisterType::PC => return self.registers.pc,
@@ -36,24 +40,25 @@ impl<'a> CPU<'a> {
             RegisterType::L => self.registers.l = (data & 0xFF) as u8,
 
             RegisterType::AF => {
-                self.registers.a = ((data >> 8) & 0xFF) as u8;
-                self.registers.f = (data & 0xFF) as u8;
+                self.registers.a = ((data & 0xFF00) >> 8) as u8;
+                self.registers.f = (data & 0x00FF) as u8;
             }
             RegisterType::BC => {
-                self.registers.b = ((data >> 8) & 0xFF) as u8;
-                self.registers.c = (data & 0xFF) as u8;
+                self.registers.b = ((data & 0xFF00) >> 8) as u8;
+                self.registers.c = (data & 0x00FF) as u8;
             }
             RegisterType::DE => {
-                self.registers.d = ((data >> 8) & 0xFF) as u8;
-                self.registers.e = (data & 0xFF) as u8;
+                self.registers.e = ((data & 0xFF00) >> 8) as u8;
+                self.registers.e = (data & 0x00FF) as u8;
             }
             RegisterType::HL => {
-                self.registers.h = ((data >> 8) & 0xFF) as u8;
-                self.registers.l = (data & 0xFF) as u8;
+                self.registers.h = ((data & 0xFF00) >> 8) as u8;
+                self.registers.l = (data & 0x00FF) as u8;
             }
-
             RegisterType::SP => self.registers.sp = data,
-            RegisterType::PC => self.registers.pc = data,
+            RegisterType::PC => self.registers.sp = data,
+            // RegisterType::SP => self.registers.sp = data,
+            // RegisterType::PC => self.registers.pc = data,
             RegisterType::NONE => return,
         }
     }

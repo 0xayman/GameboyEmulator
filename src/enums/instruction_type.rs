@@ -2,6 +2,7 @@
 #[allow(dead_code)]
 
 pub enum InstructionType {
+    UNDEFINED,
     NONE,
     NOP,
     LD,

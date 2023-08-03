@@ -39,11 +39,10 @@ impl<'a> Bus<'a> {
             0xE000..=0xFDFF => (),                                 // Reserverd ECHO RAM,
             0xFE00..=0xFE9F => panic!("OAM write not implemented for address: {:X}", address), // OAM
             0xFEA0..=0xFEFF => (), // Reserved
-            0xFF00..=0xFF7F => panic!("IO write not implemented for address: {:X}", address), // IO
+            0xFF00..=0xFF7F => println!("IO write not implemented for address: {:X}", address), // IO
             0xFFFF => cpu.set_ie_register(value), // CPU ENABLE REGISTER
             _ => cpu.bus.ram.hram_write(address, value),
-        };
-        panic!("Bus read not implemented for address: {:X}", address);
+        }
     }
 
     pub fn read16(cpu: &CPU, address: u16) -> u16 {

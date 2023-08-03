@@ -10,6 +10,7 @@ mod modules {
     pub mod instruction;
     pub mod ram;
     pub mod registers;
+    pub mod stack;
 }
 
 mod enums {

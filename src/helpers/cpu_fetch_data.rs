@@ -33,10 +33,11 @@ impl<'a> CPU<'a> {
             AddressMode::MRR => {
                 self.fetched_data = self.read_register(self.instruction.reg2);
                 self.mem_dest = self.read_register(self.instruction.reg1);
+                println!("{:#?}", self.instruction.reg1);
                 self.dest_is_mem = true;
 
                 if self.instruction.reg1 == RegisterType::C {
-                    self.mem_dest = 0xFF00 | self.mem_dest;
+                    self.mem_dest |= 0xFF00;
                 }
 
                 return;

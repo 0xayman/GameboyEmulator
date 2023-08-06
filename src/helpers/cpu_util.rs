@@ -1,4 +1,5 @@
 use crate::enums::{address_mode::AddressMode, register_type::RegisterType};
+use crate::modules::bus::Bus;
 use crate::modules::{cpu::CPU, emu::Emu};
 
 impl<'a> CPU<'a> {
@@ -23,12 +24,28 @@ impl<'a> CPU<'a> {
                 return ((self.registers.d as u16) << 8) | (self.registers.e as u16)
             }
             RegisterType::HL => {
-                return ((self.registers.h as u16) << 8) | (self.registers.l as u16)
+                let full: u16 = self.registers.h as u16 | self.registers.l as u16;
+                return ((self.registers.h as u16) << 8) | (self.registers.l as u16);
             }
 
             RegisterType::SP => return self.registers.sp,
             RegisterType::PC => return self.registers.pc,
             RegisterType::NONE => return 0,
+        }
+    }
+
+    pub fn read_register_8bits(&self, reg_type: RegisterType) -> u8 {
+        match reg_type {
+            RegisterType::A => return self.registers.a,
+            RegisterType::F => return self.registers.f,
+            RegisterType::B => return self.registers.b,
+            RegisterType::C => return self.registers.c,
+            RegisterType::D => return self.registers.d,
+            RegisterType::E => return self.registers.e,
+            RegisterType::H => return self.registers.h,
+            RegisterType::L => return self.registers.l,
+            RegisterType::HL => Bus::read(self, self.read_register(RegisterType::HL)),
+            _other => panic!("INVALID REGISTER TYPE: {:?}", reg_type),
         }
     }
 
@@ -62,6 +79,21 @@ impl<'a> CPU<'a> {
             RegisterType::SP => self.registers.sp = data,
             RegisterType::PC => self.registers.pc = data,
             RegisterType::NONE => return,
+        }
+    }
+
+    pub fn set_register_8bits(&mut self, reg_type: RegisterType, data: u8) {
+        match reg_type {
+            RegisterType::A => self.registers.a = data,
+            RegisterType::F => self.registers.f = data,
+            RegisterType::B => self.registers.b = data,
+            RegisterType::C => self.registers.c = data,
+            RegisterType::D => self.registers.d = data,
+            RegisterType::E => self.registers.e = data,
+            RegisterType::H => self.registers.h = data,
+            RegisterType::L => self.registers.l = data,
+            RegisterType::HL => Bus::write(self, self.read_register(RegisterType::HL), data),
+            _other => panic!("INVALID REGISTER TYPE: {:?}", reg_type),
         }
     }
 }

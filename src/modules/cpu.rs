@@ -59,9 +59,16 @@ impl<'a> CPU<'a> {
             self.fetch_instruction();
             self.fetch_data();
 
+            let mut flags: [char; 4] = [' '; 4];
+            let f: &u8 = &self.registers.f;
+            flags[0] = if f & (1 << 7) != 0 { 'Z' } else { '-' };
+            flags[1] = if f & (1 << 6) != 0 { 'N' } else { '-' };
+            flags[2] = if f & (1 << 5) != 0 { 'H' } else { '-' };
+            flags[3] = if f & (1 << 4) != 0 { 'C' } else { '-' };
+
             println!(
-                "PC: {:#06X} | INSTRUCTION: {:#?} | OPCODE: {:02X} | NEXT: ({:2X})({:2X}) | A: {:02X} | BC: {:02X}{:02X} | DE: {:02X}{:02X} | HL: {:02X}{:02X} | Mode: {:#?}",
-                pc, self.instruction.ins_type, self.opcode, Bus::read(self, pc + 1), Bus::read(self, pc + 2), self.registers.a, self.registers.b, self.registers.c, self.registers.d, self.registers.e, self.registers.h, self.registers.l, self.instruction.addr_mode
+                "PC: {:#06X} | {:#?} | OPCODE: ({:02X})({:2X})({:2X}) | A: {:02X} | F: {} | BC: {:02X}{:02X} | DE: {:02X}{:02X} | HL: {:02X}{:02X} | Mode: {:#?}",
+                pc, self.instruction.ins_type, self.opcode, Bus::read(self, pc + 1), Bus::read(self, pc + 2), self.registers.a, flags.iter().collect::<String>() ,self.registers.b, self.registers.c, self.registers.d, self.registers.e, self.registers.h, self.registers.l, self.instruction.addr_mode
             );
 
             self.execute();

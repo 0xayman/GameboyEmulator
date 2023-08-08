@@ -3,8 +3,8 @@ use crate::enums::instruction_type::InstructionType;
 use crate::modules::bus::Bus;
 use crate::modules::emu::Emu;
 use crate::modules::instruction::Instruction;
+use crate::modules::interrupts::Interrupt;
 use crate::modules::registers::Registers;
-
 pub struct CPU<'a> {
     pub registers: Registers,
     pub fetched_data: u16,
@@ -17,7 +17,9 @@ pub struct CPU<'a> {
     pub stepping: bool,
 
     pub int_master_enabled: bool,
+    pub enabling_ime: bool,
     pub ie_register: u8,
+    pub intrrupt_flags: u8,
 
     pub bus: &'a mut Bus<'a>,
 }
@@ -35,7 +37,9 @@ impl<'a> CPU<'a> {
             stepping: false,
 
             int_master_enabled: false,
+            enabling_ime: false,
             ie_register: 0,
+            intrrupt_flags: 0,
 
             bus: bus,
         }
@@ -72,7 +76,19 @@ impl<'a> CPU<'a> {
             );
 
             self.execute();
+        } else {
+            Emu::cycles(1);
+
+            if self.intrrupt_flags != 0 {
+                self.halted = false;
+            }
         }
+
+        if self.int_master_enabled {
+            Interrupt::handle(&self);
+            self.enabling_ime = false;
+        }
+
         return true;
     }
 

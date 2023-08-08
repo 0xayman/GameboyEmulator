@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 maplit = "1.0.2"
+sdl2 = "0.35.2"

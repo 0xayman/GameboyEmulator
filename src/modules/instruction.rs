@@ -80,6 +80,10 @@ impl Instruction {
                 reg1: RegisterType::B,
                 ..Instruction::default()
             },
+            0x07 => Instruction {
+                ins_type: InstructionType::RLCA,
+                ..Instruction::default()
+            },
             0x08 => Instruction {
                 ins_type: InstructionType::LD,
                 addr_mode: AddressMode::A16R,
@@ -124,8 +128,16 @@ impl Instruction {
                 reg1: RegisterType::C,
                 ..Instruction::default()
             },
+            0x0F => Instruction {
+                ins_type: InstructionType::RRCA,
+                ..Instruction::default()
+            },
 
             //0x1X
+            0x10 => Instruction {
+                ins_type: InstructionType::STOP,
+                ..Instruction::default()
+            },
             0x11 => Instruction {
                 ins_type: InstructionType::LD,
                 addr_mode: AddressMode::RD16,
@@ -161,6 +173,10 @@ impl Instruction {
                 ins_type: InstructionType::LD,
                 addr_mode: AddressMode::RD8,
                 reg1: RegisterType::D,
+                ..Instruction::default()
+            },
+            0x17 => Instruction {
+                ins_type: InstructionType::RLA,
                 ..Instruction::default()
             },
             0x18 => Instruction {
@@ -204,6 +220,10 @@ impl Instruction {
                 ins_type: InstructionType::LD,
                 addr_mode: AddressMode::RD8,
                 reg1: RegisterType::E,
+                ..Instruction::default()
+            },
+            0x1F => Instruction {
+                ins_type: InstructionType::RRA,
                 ..Instruction::default()
             },
 
@@ -251,6 +271,10 @@ impl Instruction {
                 reg1: RegisterType::H,
                 ..Instruction::default()
             },
+            0x27 => Instruction {
+                ins_type: InstructionType::DAA,
+                ..Instruction::default()
+            },
             0x28 => Instruction {
                 ins_type: InstructionType::JR,
                 addr_mode: AddressMode::D8,
@@ -295,6 +319,10 @@ impl Instruction {
                 reg1: RegisterType::L,
                 ..Instruction::default()
             },
+            0x2F => Instruction {
+                ins_type: InstructionType::CPL,
+                ..Instruction::default()
+            },
 
             //0x3X
             0x30 => Instruction {
@@ -330,7 +358,7 @@ impl Instruction {
             },
             0x35 => Instruction {
                 ins_type: InstructionType::DEC,
-                addr_mode: AddressMode::R,
+                addr_mode: AddressMode::MR,
                 reg1: RegisterType::HL,
                 ..Instruction::default()
             },
@@ -338,6 +366,10 @@ impl Instruction {
                 ins_type: InstructionType::LD,
                 addr_mode: AddressMode::MRD8,
                 reg1: RegisterType::HL,
+                ..Instruction::default()
+            },
+            0x07 => Instruction {
+                ins_type: InstructionType::SCF,
                 ..Instruction::default()
             },
             0x38 => Instruction {
@@ -382,6 +414,10 @@ impl Instruction {
                 ins_type: InstructionType::LD,
                 addr_mode: AddressMode::RD8,
                 reg1: RegisterType::A,
+                ..Instruction::default()
+            },
+            0x3F => Instruction {
+                ins_type: InstructionType::CCF,
                 ..Instruction::default()
             },
 
@@ -1331,7 +1367,7 @@ impl Instruction {
             },
             0xC6 => Instruction {
                 ins_type: InstructionType::ADD,
-                addr_mode: AddressMode::RA8,
+                addr_mode: AddressMode::RD8,
                 reg1: RegisterType::A,
                 ..Instruction::default()
             },
@@ -1412,6 +1448,12 @@ impl Instruction {
                 reg1: RegisterType::DE,
                 ..Instruction::default()
             },
+            0xD6 => Instruction {
+                ins_type: InstructionType::SUB,
+                addr_mode: AddressMode::RD8,
+                reg1: RegisterType::A,
+                ..Instruction::default()
+            },
             0xD7 => Instruction {
                 ins_type: InstructionType::RST,
                 param: Some(0x10),
@@ -1436,6 +1478,12 @@ impl Instruction {
                 ins_type: InstructionType::CALL,
                 addr_mode: AddressMode::D16,
                 cond_type: ConditionType::C,
+                ..Instruction::default()
+            },
+            0xDE => Instruction {
+                ins_type: InstructionType::SBC,
+                addr_mode: AddressMode::RD8,
+                reg1: RegisterType::A,
                 ..Instruction::default()
             },
             0xDF => Instruction {
@@ -1472,7 +1520,8 @@ impl Instruction {
             },
             0xE6 => Instruction {
                 ins_type: InstructionType::AND,
-                addr_mode: AddressMode::D8,
+                addr_mode: AddressMode::RD8,
+                reg1: RegisterType::A,
                 ..Instruction::default()
             },
             0xE7 => Instruction {
@@ -1498,9 +1547,10 @@ impl Instruction {
                 reg2: RegisterType::A,
                 ..Instruction::default()
             },
-            0xE6 => Instruction {
+            0xEE => Instruction {
                 ins_type: InstructionType::XOR,
-                addr_mode: AddressMode::D8,
+                addr_mode: AddressMode::RD8,
+                reg1: RegisterType::A,
                 ..Instruction::default()
             },
             0xEF => Instruction {
@@ -1541,12 +1591,27 @@ impl Instruction {
             },
             0xF6 => Instruction {
                 ins_type: InstructionType::OR,
-                addr_mode: AddressMode::D8,
+                addr_mode: AddressMode::RD8,
+                reg1: RegisterType::A,
                 ..Instruction::default()
             },
             0xF7 => Instruction {
                 ins_type: InstructionType::RST,
                 param: Some(0x30),
+                ..Instruction::default()
+            },
+            0xF8 => Instruction {
+                ins_type: InstructionType::LD,
+                addr_mode: AddressMode::HLSPR,
+                reg1: RegisterType::HL,
+                reg2: RegisterType::SP,
+                ..Instruction::default()
+            },
+            0xF9 => Instruction {
+                ins_type: InstructionType::LD,
+                addr_mode: AddressMode::RR,
+                reg1: RegisterType::SP,
+                reg2: RegisterType::HL,
                 ..Instruction::default()
             },
             0xFA => Instruction {
@@ -1555,9 +1620,14 @@ impl Instruction {
                 reg1: RegisterType::A,
                 ..Instruction::default()
             },
+            0xFB => Instruction {
+                ins_type: InstructionType::EI,
+                ..Instruction::default()
+            },
             0xFE => Instruction {
                 ins_type: InstructionType::CP,
-                addr_mode: AddressMode::D8,
+                addr_mode: AddressMode::RD8,
+                reg1: RegisterType::A,
                 ..Instruction::default()
             },
             0xFF => Instruction {

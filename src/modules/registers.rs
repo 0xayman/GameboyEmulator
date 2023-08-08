@@ -33,6 +33,14 @@ impl Registers {
         return common::bit(self.f, 7);
     }
 
+    pub fn flag_n(&self) -> bool {
+        return common::bit(self.f, 6);
+    }
+
+    pub fn flag_h(&self) -> bool {
+        return common::bit(self.f, 5);
+    }
+
     pub fn flag_c(&self) -> bool {
         return common::bit(self.f, 4);
     }

@@ -157,7 +157,7 @@ impl<'a> CPU<'a> {
 
                 let addr: u16 = lo | (hi << 8);
 
-                self.registers.pc += 1;
+                self.registers.pc += 2;
                 self.fetched_data = Bus::read(&self, addr) as u16;
                 Emu::cycles(1);
                 return;

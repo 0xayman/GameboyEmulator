@@ -7,6 +7,7 @@ use crate::modules::ram::RAM;
 pub struct Emu {
     paused: bool,
     running: bool,
+    die: bool,
     ticks: u64,
 }
 
@@ -15,6 +16,7 @@ impl Emu {
         Self {
             paused: false,
             running: true,
+            die: false,
             ticks: 0,
         }
     }
@@ -41,6 +43,8 @@ impl Emu {
             }
 
             self.ticks += 1;
+
+            print!("\nTICKS: {:0X}\t", self.ticks);
         }
 
         return;

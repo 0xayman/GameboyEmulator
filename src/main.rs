@@ -8,15 +8,18 @@ mod modules {
     pub mod cpu;
     pub mod emu;
     pub mod instruction;
+    pub mod interrupts;
     pub mod ram;
     pub mod registers;
     pub mod stack;
+    pub mod ui;
 }
 
 mod enums {
     pub mod address_mode;
     pub mod condition_type;
     pub mod instruction_type;
+    pub mod interrupt_types;
     pub mod register_type;
 }
 

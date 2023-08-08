@@ -45,7 +45,7 @@ impl<'a> CPU<'a> {
             self.set_flags(0, 0, hflag as i8, cflag as i8);
             self.set_register(
                 self.instruction.reg1,
-                self.read_register(self.instruction.reg2) + self.fetched_data,
+                self.read_register(self.instruction.reg2) + (self.fetched_data as i8) as u16,
             );
 
             return;
@@ -253,10 +253,11 @@ impl<'a> CPU<'a> {
 
         let z: i8 = (val == 0) as i8;
         let h: i8 = (((self.read_register(self.instruction.reg1) as i8) & 0xF)
-            - ((self.fetched_data as i8) & 0xF)
+            .wrapping_sub(((self.fetched_data as i8) & 0xF))
             < 0) as i8;
 
-        let c: i8 = ((self.read_register(self.instruction.reg1) as i8) - (self.fetched_data as i8)
+        let c: i8 = ((self.read_register(self.instruction.reg1) as i8)
+            .wrapping_sub(self.fetched_data as i8)
             < 0) as i8;
 
         self.set_register(self.instruction.reg1, val);
@@ -313,8 +314,13 @@ impl<'a> CPU<'a> {
         let op: u8 = self.fetched_data as u8;
         let reg: RegisterType = Self::decode_reg(op & 0b111);
         let bit: u8 = (op >> 3) & 0b111;
-        let bit_op: u8 = op.wrapping_shr(8) & 0b11;
+        let bit_op: u8 = (op >> 6) & 0b11;
         let mut reg_val: u8 = self.read_register_8bits(reg);
+
+        println!(
+            "OP: {:02X} | reg: {:#?} | bit: {} | bit_op: {} | reg_val: {}",
+            op, reg, bit, bit_op, reg_val
+        );
 
         Emu::cycles(1);
 
@@ -323,16 +329,21 @@ impl<'a> CPU<'a> {
         }
 
         match bit_op {
-            1 => self.set_flags((reg_val & (1 << bit)) as i8, 0, 1, -1),
+            1 => {
+                self.set_flags((reg_val & (1 << bit)) as i8, 0, 1, -1);
+                return;
+            }
             2 => {
                 reg_val &= !(1 << bit);
                 self.set_register_8bits(reg, reg_val);
+                return;
             }
             3 => {
                 reg_val |= (1 << bit);
                 self.set_register_8bits(reg, reg_val);
+                return;
             }
-            _other => panic!("UNKNOWN BIT OP"),
+            _other => println!("UNKNOWN BIT OP {}", bit_op),
         }
 
         let flag_c: bool = self.registers.flag_c();
@@ -349,6 +360,7 @@ impl<'a> CPU<'a> {
 
                 self.set_register_8bits(reg, res);
                 self.set_flags((res == 0) as i8, 0, 0, set_c as i8);
+                return;
             }
             1 => {
                 let old: u8 = reg_val;
@@ -357,6 +369,7 @@ impl<'a> CPU<'a> {
 
                 self.set_register_8bits(reg, reg_val);
                 self.set_flags(!reg_val as i8, 0, 0, (old & 1) as i8);
+                return;
             }
             2 => {
                 let old: u8 = reg_val;
@@ -365,6 +378,7 @@ impl<'a> CPU<'a> {
 
                 self.set_register_8bits(reg, reg_val);
                 self.set_flags(!reg_val as i8, 0, 0, !!(old & 0x80) as i8);
+                return;
             }
             3 => {
                 let old: u8 = reg_val;
@@ -373,6 +387,7 @@ impl<'a> CPU<'a> {
 
                 self.set_register_8bits(reg, reg_val);
                 self.set_flags(!reg_val as i8, 0, 0, (old & 1) as i8);
+                return;
             }
             4 => {
                 let old: u8 = reg_val;
@@ -380,26 +395,114 @@ impl<'a> CPU<'a> {
 
                 self.set_register_8bits(reg, reg_val);
                 self.set_flags(!reg_val as i8, 0, 0, !!(old & 0x80) as i8);
+                return;
             }
             5 => {
                 let u: u8 = (reg_val as i8 as u8) >> 1;
                 self.set_register_8bits(reg, u);
                 self.set_flags(!u as i8, 0, 0, (reg_val & 1) as i8);
+                return;
             }
             6 => {
                 reg_val = ((reg_val & 0xF0) >> 4) | ((reg_val & 0xF) << 4);
                 self.set_register_8bits(reg, reg_val);
                 self.set_flags((reg_val == 0) as i8, 0, 0, 0);
+                return;
             }
             7 => {
                 let u: u8 = reg_val >> 1;
                 self.set_register_8bits(reg, u);
                 self.set_flags(!u as i8, 0, 0, (reg_val & 1) as i8);
+                return;
             }
-            _other => panic!("UNKNOWN BIT OP"),
+            _other => println!("UNKNOWN BIT OP {}", bit),
         }
 
-        panic!("INVALID CB: {:02x}", op);
+        panic!("INVALID OP: {:02x}", op);
+    }
+
+    fn process_rrca(&mut self) {
+        let b: u8 = self.registers.a & 1;
+        self.registers.a >>= 1;
+        self.registers.a |= (b << 7);
+
+        self.set_flags(0, 0, 0, b as i8);
+    }
+
+    fn process_rlca(&mut self) {
+        let mut u: u8 = self.registers.a;
+        let c: u8 = ((u >> 7) & 1) as u8;
+
+        u = (u << 1) | c;
+        self.registers.a = u;
+
+        self.set_flags(0, 0, 0, c as i8);
+    }
+
+    fn process_rra(&mut self) {
+        let carry: u8 = self.registers.flag_c() as u8;
+        let new_c: u8 = self.registers.a & 1;
+
+        self.registers.a >>= 1;
+        self.registers.a |= (carry << 7);
+
+        self.set_flags(0, 0, 0, new_c as i8)
+    }
+
+    fn process_rla(&mut self) {
+        let u: u8 = self.registers.a;
+        let cf: u8 = self.registers.flag_c() as u8;
+        let c: u8 = (u >> 7) & 1;
+
+        self.registers.a = (u << 1) | cf;
+        self.set_flags(0, 0, 0, c as i8);
+    }
+
+    fn process_stop(&mut self) {
+        panic!("STOP FUNCTION NOT IMPLEMENTED");
+    }
+
+    fn process_halt(&mut self) {
+        self.halted = true;
+    }
+
+    fn process_daa(&mut self) {
+        let mut u: i8 = 0;
+        let mut fc: i8 = 0;
+
+        if self.registers.flag_h() || (!self.registers.flag_n() && (self.registers.a & 0xF) > 9) {
+            u = 6;
+        }
+
+        if self.registers.flag_c() || (!self.registers.flag_n() && self.registers.a > 0x99) {
+            u |= 0x60;
+            fc = 1;
+        }
+
+        if self.registers.flag_n() {
+            self.registers.a = self.registers.a.wrapping_add_signed(u * -1);
+        } else {
+            self.registers.a = self.registers.a.wrapping_add(u as u8);
+        }
+
+        self.set_flags((self.registers.a == 0) as i8, -1, 0, fc);
+    }
+
+    fn process_cpl(&mut self) {
+        self.registers.a = !self.registers.a;
+        self.set_flags(-1, 1, 1, -1)
+    }
+
+    fn process_csf(&mut self) {
+        self.set_flags(-1, 0, 0, 1);
+    }
+
+    fn process_ccf(&mut self) {
+        self.set_flags(-1, 0, 0, (self.registers.flag_c() as i8) ^ 1);
+    }
+
+    fn process_ei(&mut self) {
+        self.enabling_ime = true;
     }
 
     fn decode_reg(reg: u8) -> RegisterType {
@@ -430,7 +533,6 @@ impl<'a> CPU<'a> {
     }
 
     fn set_flags(&mut self, z: i8, n: i8, h: i8, c: i8) {
-        println!("Z: {} | N: {} | H: {} | C: {}", z, n, h, c);
         if z != -1 {
             self.registers.f = set_bit(self.registers.f, 7, z == 1);
         }
@@ -496,6 +598,17 @@ impl<'a> CPU<'a> {
             InstructionType::XOR => self.process_xor(),
             InstructionType::CP => self.process_cp(),
             InstructionType::CB => self.process_cb(),
+            InstructionType::RRCA => self.process_rrca(),
+            InstructionType::RLCA => self.process_rlca(),
+            InstructionType::RRA => self.process_rra(),
+            InstructionType::RLA => self.process_rla(),
+            InstructionType::STOP => self.process_stop(),
+            InstructionType::HALT => self.process_halt(),
+            InstructionType::DAA => self.process_daa(),
+            InstructionType::CPL => self.process_cpl(),
+            InstructionType::SCF => self.process_csf(),
+            InstructionType::CCF => self.process_ccf(),
+            InstructionType::EI => self.process_ei(),
             other => panic!(
                 "Cannot Process instruction: {:#?} with opcode: {:X}",
                 other, self.opcode

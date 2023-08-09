@@ -7,4 +7,8 @@ edition = "2021"
 
 [dependencies]
 maplit = "1.0.2"
-sdl2 = "0.35.2"
+
+[dependencies.sdl2]
+version = "0.35.2"
+default-features = true
+features = ["ttf"]

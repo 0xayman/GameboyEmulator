@@ -1,3 +1,6 @@
+use std::fs::OpenOptions;
+use std::io::Write;
+
 use crate::enums::address_mode::AddressMode;
 use crate::enums::instruction_type::InstructionType;
 use crate::modules::bus::Bus;
@@ -53,7 +56,7 @@ impl CPU {
     }
 
     pub fn init(&mut self) {
-        self.registers.pc = 0x100;
+        self.registers.pc = 0x0100;
         self.registers.sp = 0xFFFE;
         self.registers.a = 0x01;
         self.registers.f = 0xB0;
@@ -78,6 +81,23 @@ impl CPU {
     }
 
     pub fn step(&mut self) -> bool {
+        // println!("A:{:02X} F:{:02X} B:{:02X} C:{:02X} D:{:02X} E:{:02X} H:{:02X} L:{:02X} SP:{:04X} PC:{:04X} PCMEM:{:02X},{:02X},{:02X},{:02X}",
+        //     self.registers.a, self.registers.f, self.registers.b, self.registers.c, self.registers.d, self.registers.e, self.registers.h, self.registers.l,
+        //     self.registers.sp, self.registers.pc, Bus::read(self, self.registers.pc), Bus::read(self, self.registers.pc + 1), Bus::read(self, self.registers.pc + 2), Bus::read(self, self.registers.pc + 3)
+        // );
+
+        // Write the above print content to file log.txt
+        // let mut file = OpenOptions::new()
+        //     .write(true)
+        //     .append(true)
+        //     .open("log.txt")
+        //     .unwrap();
+
+        // file.write_all(format!("A:{:02X} F:{:02X} B:{:02X} C:{:02X} D:{:02X} E:{:02X} H:{:02X} L:{:02X} SP:{:04X} PC:{:04X} PCMEM:{:02X},{:02X},{:02X},{:02X}\n",
+        //     self.registers.a, self.registers.f, self.registers.b, self.registers.c, self.registers.d, self.registers.e, self.registers.h, self.registers.l,
+        //     self.registers.sp, self.registers.pc, Bus::read(self, self.registers.pc), Bus::read(self, self.registers.pc + 1), Bus::read(self, self.registers.pc + 2), Bus::read(self, self.registers.pc + 3)
+        // ).as_bytes()).unwrap();
+
         if !self.halted {
             let pc: u16 = self.registers.pc;
 
@@ -118,7 +138,6 @@ impl CPU {
         if (self.enabling_ime) {
             self.int_master_enabled = true;
         }
-
         return true;
     }
 

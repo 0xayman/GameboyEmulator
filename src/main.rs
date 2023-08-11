@@ -11,6 +11,7 @@ mod modules {
     pub mod instruction;
     pub mod interrupts;
     pub mod io;
+    pub mod ppu;
     pub mod ram;
     pub mod registers;
     pub mod stack;

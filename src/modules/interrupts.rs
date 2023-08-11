@@ -4,8 +4,18 @@ pub mod Interrupt {
         modules::{cpu::CPU, stack::Stack},
     };
 
+    fn map_interrupt_type_to_u8(interrupt_type: InterruptType) -> u8 {
+        return match interrupt_type {
+            InterruptType::VBLANK => 1,
+            InterruptType::LCDSTAT => 2,
+            InterruptType::TIMER => 4,
+            InterruptType::SERIAL => 8,
+            InterruptType::JOYPAD => 16,
+        };
+    }
+
     pub fn request(cpu: &mut CPU, interrupt_type: InterruptType) {
-        cpu.interrupt_flags |= interrupt_type as u8;
+        cpu.interrupt_flags |= map_interrupt_type_to_u8(interrupt_type);
     }
 
     fn process(cpu: &mut CPU, address: u16) {
@@ -14,7 +24,7 @@ pub mod Interrupt {
     }
 
     fn check(cpu: &mut CPU, address: u16, interrupt_type: InterruptType) -> bool {
-        let it: u8 = interrupt_type as u8;
+        let it: u8 = map_interrupt_type_to_u8(interrupt_type);
         if ((cpu.interrupt_flags & it) != 0 && (cpu.ie_register & it) != 0) {
             process(cpu, address);
             cpu.interrupt_flags &= !it;

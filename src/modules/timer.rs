@@ -35,16 +35,16 @@ impl Timer {
 
         match (cpu.timer.tac & 0b11) {
             0b00 => {
-                timer_update = (((prev_div & (1 << 9)) == 1) && (!(cpu.timer.div & (1 << 9)) == 1));
+                timer_update = (((prev_div & (1 << 9)) != 0) && (!(cpu.timer.div & (1 << 9)) != 0));
             }
             0b01 => {
-                timer_update = (((prev_div & (1 << 3)) == 1) && (!(cpu.timer.div & (1 << 3)) == 1));
+                timer_update = (((prev_div & (1 << 3)) != 0) && (!(cpu.timer.div & (1 << 3)) != 0));
             }
             0b10 => {
-                timer_update = (((prev_div & (1 << 5)) == 1) && (!(cpu.timer.div & (1 << 5)) == 1));
+                timer_update = (((prev_div & (1 << 5)) != 0) && (!(cpu.timer.div & (1 << 5)) != 0));
             }
             0b11 => {
-                timer_update = (((prev_div & (1 << 7)) == 1) && (!(cpu.timer.div & (1 << 7)) == 1));
+                timer_update = (((prev_div & (1 << 7)) != 0) && (!(cpu.timer.div & (1 << 7)) != 0));
             }
             _ => {}
         }

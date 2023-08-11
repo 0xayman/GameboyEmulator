@@ -12,6 +12,7 @@ impl IO {
     }
 
     pub fn read(cpu: &CPU, address: u16) -> u8 {
+        // return 0x90;
         return match address {
             0xFF01 => cpu.bus.io.serial_data[0],
             0xFF02 => cpu.bus.io.serial_data[1],

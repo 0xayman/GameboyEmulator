@@ -45,7 +45,7 @@ impl CPU {
                 + (self.fetched_data & 0xFF)
                 >= 0x100;
 
-            self.set_flags(0, 0, hflag as i8, cflag as i8);
+            self.set_flags(Some(false), Some(false), Some(hflag), Some(cflag));
             self.set_register(
                 self.instruction.reg1,
                 self.read_register(self.instruction.reg2)
@@ -165,7 +165,7 @@ impl CPU {
             return;
         }
 
-        self.set_flags((val == 0) as i8, 0, ((val & 0x0F) == 0) as i8, -1);
+        self.set_flags(Some(val == 0), Some(false), Some(((val & 0x0F) == 0)), None);
     }
 
     fn process_dec(&mut self) {
@@ -189,7 +189,7 @@ impl CPU {
             return;
         }
 
-        self.set_flags((val == 0) as i8, 1, ((val & 0x0F) == 0x0F) as i8, -1);
+        self.set_flags(Some(val == 0), Some(true), Some((val & 0x0F) == 0x0F), None);
     }
 
     fn process_add(&mut self) {
@@ -206,33 +206,43 @@ impl CPU {
                 .wrapping_add_signed(self.fetched_data as i8 as i16) as u32;
         }
 
-        let mut z: i8 = ((val & 0xFF) == 0) as i8;
-        let mut h: i8 = ((self.read_register(self.instruction.reg1) & 0xF)
-            + (self.fetched_data & 0xF)
-            >= 0x10) as i8;
-        let mut c: i8 = ((self.read_register(self.instruction.reg1) as i16 & 0xFF)
-            + (self.fetched_data as i16 & 0xFF)
-            >= 0x100) as i8;
+        let mut z: Option<bool> = Some((val & 0xFF) == 0);
+        let mut h: Option<bool> = Some(
+            (self.read_register(self.instruction.reg1) & 0xF) + (self.fetched_data & 0xF) >= 0x10,
+        );
+        let mut c: Option<bool> = Some(
+            (self.read_register(self.instruction.reg1) as i16 & 0xFF)
+                + (self.fetched_data as i16 & 0xFF)
+                >= 0x100,
+        );
 
         if Self::is_16bit(self.instruction.reg1) {
-            z = -1;
-            h = ((self.read_register(self.instruction.reg1) & 0xFFF) + (self.fetched_data & 0xFFF)
-                >= 0x1000) as i8;
-            c = ((self.read_register(self.instruction.reg1) as u32) + (self.fetched_data as u32)
-                >= 0x10000) as i8;
+            z = None;
+            h = Some(
+                (self.read_register(self.instruction.reg1) & 0xFFF) + (self.fetched_data & 0xFFF)
+                    >= 0x1000,
+            );
+            c = Some(
+                (self.read_register(self.instruction.reg1) as u32) + (self.fetched_data as u32)
+                    >= 0x10000,
+            );
         }
 
         if self.instruction.reg1 == RegisterType::SP {
-            z = 0;
-            h = ((self.read_register(self.instruction.reg1) & 0xF) + (self.fetched_data & 0xF)
-                >= 0x10) as i8;
-            c = ((self.read_register(self.instruction.reg1) as i16 & 0xFF)
-                + (self.fetched_data as i16 & 0xFF)
-                >= 0x100) as i8;
+            z = Some(false);
+            h = Some(
+                (self.read_register(self.instruction.reg1) & 0xF) + (self.fetched_data & 0xF)
+                    >= 0x10,
+            );
+            c = Some(
+                (self.read_register(self.instruction.reg1) as i16 & 0xFF)
+                    + (self.fetched_data as i16 & 0xFF)
+                    >= 0x100,
+            );
         }
 
         self.set_register(self.instruction.reg1, (val as u16 & 0xFFFF));
-        self.set_flags(z, 0, h, c);
+        self.set_flags(z, Some(false), h, c);
     }
 
     fn process_adc(&mut self) {
@@ -243,10 +253,10 @@ impl CPU {
         self.registers.a = (a + u + c) as u8;
 
         self.set_flags(
-            (self.registers.a == 0) as i8,
-            0,
-            ((a & 0xF) + ((u & 0xF) + c) > 0xF) as i8,
-            ((a + u + c) > 0xFF) as i8,
+            Some(self.registers.a == 0),
+            Some(false),
+            Some((a & 0xF) + ((u & 0xF) + c) > 0xF),
+            Some((a + u + c) > 0xFF),
         )
     }
 
@@ -255,68 +265,88 @@ impl CPU {
             .read_register(self.instruction.reg1)
             .wrapping_sub(self.fetched_data);
 
-        let z: i8 = (val == 0) as i8;
-        let h: i8 = (((self.read_register(self.instruction.reg1) as i8) & 0xF)
-            .wrapping_sub(((self.fetched_data as i8) & 0xF))
-            < 0) as i8;
+        let z: Option<bool> = Some(val == 0);
 
-        let c: i8 = ((self.read_register(self.instruction.reg1) as i8)
-            .wrapping_sub(self.fetched_data as i8)
-            < 0) as i8;
+        let h: Option<bool> = Some(
+            ((self.read_register(self.instruction.reg1) as i32) & 0xF)
+                .wrapping_sub(((self.fetched_data as i32) & 0xF))
+                < 0,
+        );
+
+        let c: Option<bool> = Some(
+            (self.read_register(self.instruction.reg1) as i32)
+                .wrapping_sub(self.fetched_data as i32)
+                < 0,
+        );
 
         self.set_register(self.instruction.reg1, val);
-        self.set_flags(z, 1, h, c);
+        self.set_flags(z, Some(true), h, c);
     }
 
     fn process_sbc(&mut self) {
-        let val: u8 = (self.fetched_data as u16 + self.registers.flag_c() as u16) as u8;
+        let val: u16 = (self.fetched_data as u16 + self.registers.flag_c() as u16);
 
-        let z: i8 = ((self
-            .read_register(self.instruction.reg1)
-            .wrapping_sub(val as u16))
-            == 0) as i8;
+        let z: Option<bool> =
+            Some((self.read_register(self.instruction.reg1).wrapping_sub(val)) == 0);
 
-        let h: i8 = (((self.read_register(self.instruction.reg1)) as i8)
-            & 0xF - ((self.fetched_data as i8) & 0xF) - (self.registers.flag_c() as i8)
-            < 0) as i8;
+        let h: Option<bool> = Some(
+            ((self.read_register(self.instruction.reg1)) as i8)
+                & 0xF - ((self.fetched_data as i8) & 0xF) - (self.registers.flag_c() as i8)
+                < 0,
+        );
 
-        let c: i8 = ((self
-            .read_register(self.instruction.reg1)
-            .wrapping_sub((self.fetched_data)))
-        .wrapping_sub(self.registers.flag_c() as u16)
-            < 0) as i8;
+        let c: Option<bool> = Some(
+            (self
+                .read_register(self.instruction.reg1)
+                .wrapping_sub((self.fetched_data)))
+            .wrapping_sub(self.registers.flag_c() as u16)
+                < 0,
+        );
 
         self.set_register(
             self.instruction.reg1,
             self.read_register(self.instruction.reg1)
                 .wrapping_sub(val as u16),
         );
-        self.set_flags(z, 1, h, c);
+        self.set_flags(z, Some(true), h, c);
     }
 
     fn process_or(&mut self) {
         self.registers.a |= self.fetched_data as u8;
-        self.set_flags((self.registers.a == 0) as i8, 0, 0, 0);
+        self.set_flags(
+            Some(self.registers.a == 0),
+            Some(false),
+            Some(false),
+            Some(false),
+        );
     }
 
     fn process_and(&mut self) {
         self.registers.a &= self.fetched_data as u8;
-        self.set_flags((self.registers.a == 0) as i8, 0, 1, 0);
+        self.set_flags(
+            Some(self.registers.a == 0),
+            Some(false),
+            Some(true),
+            Some(false),
+        );
     }
 
     fn process_xor(&mut self) {
         self.registers.a ^= self.fetched_data as u8;
-        self.set_flags((self.registers.a == 0) as i8, 0, 0, 0);
+        self.set_flags(
+            Some(self.registers.a == 0),
+            Some(false),
+            Some(false),
+            Some(false),
+        );
     }
 
     fn process_cp(&mut self) {
-        let z: i16 = (self.registers.a as i16).wrapping_sub(self.fetched_data as i16);
-        self.set_flags(
-            (z == 0) as i8,
-            1,
-            (((self.registers.a as i16) & 0x0F - (self.fetched_data as i16) & 0x0F) < 0) as i8,
-            (z < 0) as i8,
-        );
+        let z = (self.registers.a as i32).wrapping_sub(self.fetched_data as i32);
+
+        let hflag = (((self.registers.a as i32) & 0x0F) - ((self.fetched_data as i32) & 0x0F)) < 0;
+
+        self.set_flags(Some(z == 0), Some(true), Some(hflag), Some(z < 0));
     }
 
     fn process_cb(&mut self) {
@@ -334,26 +364,35 @@ impl CPU {
 
         match bit_op {
             1 => {
-                self.set_flags((reg_val & (1 << bit)) as i8, 0, 1, -1);
+                // BIT
+                self.set_flags(
+                    Some(!(reg_val & (1 << bit) != 0)),
+                    Some(false),
+                    Some(true),
+                    None,
+                );
                 return;
             }
             2 => {
+                // RST
                 reg_val &= !(1 << bit);
                 self.set_register_8bits(reg, reg_val);
                 return;
             }
             3 => {
+                // SET
                 reg_val |= (1 << bit);
                 self.set_register_8bits(reg, reg_val);
                 return;
             }
-            _other => println!("UNKNOWN BIT OP {}", bit_op),
+            _other => {}
         }
 
         let flag_c: bool = self.registers.flag_c();
 
         match bit {
             0 => {
+                // RLC
                 let mut set_c: bool = false;
                 let mut res: u8 = (reg_val << 1) & 0xFF;
 
@@ -363,84 +402,122 @@ impl CPU {
                 }
 
                 self.set_register_8bits(reg, res);
-                self.set_flags((res == 0) as i8, 0, 0, set_c as i8);
+                self.set_flags(Some(res == 0), Some(false), Some(false), Some(set_c));
                 return;
             }
             1 => {
+                // RRC
                 let old: u8 = reg_val;
                 reg_val >>= 1;
                 reg_val |= (old << 7);
 
                 self.set_register_8bits(reg, reg_val);
-                self.set_flags(!reg_val as i8, 0, 0, (old & 1) as i8);
+                self.set_flags(
+                    Some(!(reg_val != 0)),
+                    Some(false),
+                    Some(false),
+                    Some((old & 1) != 0),
+                );
                 return;
             }
             2 => {
+                // RL
                 let old: u8 = reg_val;
                 reg_val <<= 1;
                 reg_val |= flag_c as u8;
 
                 self.set_register_8bits(reg, reg_val);
-                self.set_flags(!reg_val as i8, 0, 0, !!(old & 0x80) as i8);
+                self.set_flags(
+                    Some(!(reg_val != 0)),
+                    Some(false),
+                    Some(false),
+                    Some(!!(old & 0x80 != 0)),
+                );
                 return;
             }
             3 => {
+                // RR
                 let old: u8 = reg_val;
                 reg_val >>= 1;
                 reg_val |= ((flag_c as u8) << 7);
 
                 self.set_register_8bits(reg, reg_val);
-                self.set_flags(!reg_val as i8, 0, 0, (old & 1) as i8);
+                self.set_flags(
+                    Some(!(reg_val != 0)),
+                    Some(false),
+                    Some(false),
+                    Some(old & 1 != 0),
+                );
                 return;
             }
             4 => {
+                // SLA
                 let old: u8 = reg_val;
                 reg_val << 1;
 
                 self.set_register_8bits(reg, reg_val);
-                self.set_flags(!reg_val as i8, 0, 0, !!(old & 0x80) as i8);
+                self.set_flags(
+                    Some(!(reg_val != 0)),
+                    Some(false),
+                    Some(false),
+                    Some(!!(old & 0x80 != 0)),
+                );
                 return;
             }
             5 => {
-                let u: u8 = (reg_val as i8 as u8) >> 1;
+                // SRA
+                let u: u8 = (reg_val as u8) >> 1;
                 self.set_register_8bits(reg, u);
-                self.set_flags(!u as i8, 0, 0, (reg_val & 1) as i8);
+                self.set_flags(
+                    Some(!(u != 0)),
+                    Some(false),
+                    Some(false),
+                    Some(reg_val & 1 != 0),
+                );
                 return;
             }
             6 => {
+                // SWAP
                 reg_val = ((reg_val & 0xF0) >> 4) | ((reg_val & 0xF) << 4);
                 self.set_register_8bits(reg, reg_val);
-                self.set_flags((reg_val == 0) as i8, 0, 0, 0);
+                self.set_flags(Some(reg_val == 0), Some(false), Some(false), Some(false));
                 return;
             }
             7 => {
+                // SRL
                 let u: u8 = reg_val >> 1;
                 self.set_register_8bits(reg, u);
-                self.set_flags(!u as i8, 0, 0, (reg_val & 1) as i8);
+                self.set_flags(
+                    Some(u == 0),
+                    Some(false),
+                    Some(false),
+                    Some(reg_val & 1 != 0),
+                );
+                // panic!("NOT U: {:04x} | C: {:04X}", !u as i8, (reg_val & 1) as i8);
                 return;
             }
-            _other => println!("UNKNOWN BIT OP {}", bit),
+            _other => {}
         }
 
         panic!("INVALID OP: {:02x}", op);
     }
 
     fn process_rrca(&mut self) {
-        let b: u8 = self.registers.a & 1;
+        let b: u8 = (self.registers.a & 1);
         self.registers.a >>= 1;
         self.registers.a |= (b << 7);
 
-        self.set_flags(0, 0, 0, b as i8);
+        self.set_flags(Some(false), Some(false), Some(false), Some(b != 0));
     }
 
     fn process_rlca(&mut self) {
         let mut u: u8 = self.registers.a;
-        let c: u8 = ((u >> 7) & 1) as u8;
+        let c: u8 = ((u >> 7) & 1);
 
         u = (u << 1) | c;
         self.registers.a = u;
 
-        self.set_flags(0, 0, 0, c as i8);
+        self.set_flags(Some(false), Some(false), Some(false), Some(c != 0));
     }
 
     fn process_rra(&mut self) {
@@ -450,7 +527,7 @@ impl CPU {
         self.registers.a >>= 1;
         self.registers.a |= (carry << 7);
 
-        self.set_flags(0, 0, 0, new_c as i8)
+        self.set_flags(Some(false), Some(false), Some(false), Some(new_c != 0))
     }
 
     fn process_rla(&mut self) {
@@ -459,7 +536,7 @@ impl CPU {
         let c: u8 = (u >> 7) & 1;
 
         self.registers.a = (u << 1) | cf;
-        self.set_flags(0, 0, 0, c as i8);
+        self.set_flags(Some(false), Some(false), Some(false), Some(c != 0));
     }
 
     fn process_stop(&mut self) {
@@ -489,20 +566,30 @@ impl CPU {
             self.registers.a = self.registers.a.wrapping_add(u as u8);
         }
 
-        self.set_flags((self.registers.a == 0) as i8, -1, 0, fc);
+        self.set_flags(
+            Some(self.registers.a == 0),
+            None,
+            Some(false),
+            Some(fc != 0),
+        );
     }
 
     fn process_cpl(&mut self) {
         self.registers.a = !self.registers.a;
-        self.set_flags(-1, 1, 1, -1)
+        self.set_flags(None, Some(true), Some(true), None)
     }
 
     fn process_csf(&mut self) {
-        self.set_flags(-1, 0, 0, 1);
+        self.set_flags(None, Some(false), Some(false), Some(true));
     }
 
     fn process_ccf(&mut self) {
-        self.set_flags(-1, 0, 0, (self.registers.flag_c() as i8) ^ 1);
+        self.set_flags(
+            None,
+            Some(false),
+            Some(false),
+            Some((self.registers.flag_c() as u8) ^ 1 != 0),
+        );
     }
 
     fn process_ei(&mut self) {
@@ -536,18 +623,18 @@ impl CPU {
         return reg_type >= RegisterType::AF;
     }
 
-    fn set_flags(&mut self, z: i8, n: i8, h: i8, c: i8) {
-        if z != -1 {
-            self.registers.f = set_bit(self.registers.f, 7, z != 0);
+    fn set_flags(&mut self, z: Option<bool>, n: Option<bool>, h: Option<bool>, c: Option<bool>) {
+        if z.is_some() {
+            self.registers.f = set_bit(self.registers.f, 7, z.unwrap());
         }
-        if n != -1 {
-            self.registers.f = set_bit(self.registers.f, 6, n != 0);
+        if n.is_some() {
+            self.registers.f = set_bit(self.registers.f, 6, n.unwrap());
         }
-        if h != -1 {
-            self.registers.f = set_bit(self.registers.f, 5, h != 0);
+        if h.is_some() {
+            self.registers.f = set_bit(self.registers.f, 5, h.unwrap());
         }
-        if c != -1 {
-            self.registers.f = set_bit(self.registers.f, 4, c != 0);
+        if c.is_some() {
+            self.registers.f = set_bit(self.registers.f, 4, c.unwrap());
         }
     }
 

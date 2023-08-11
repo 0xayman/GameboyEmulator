@@ -46,6 +46,6 @@ pub mod UI {
             }
         }
 
-        println!("SDL QUIT");
+        println!("\nSDL QUIT");
     }
 }

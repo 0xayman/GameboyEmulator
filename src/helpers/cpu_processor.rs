@@ -9,8 +9,9 @@ use crate::modules::common::set_bit;
 use crate::modules::cpu::CPU;
 use crate::modules::emu::Emu;
 use crate::modules::stack::Stack;
+use crate::modules::timer::Timer;
 
-impl<'a> CPU<'a> {
+impl CPU {
     fn process_none(&mut self) {
         return;
     }
@@ -23,13 +24,15 @@ impl<'a> CPU<'a> {
 
     fn process_ld(&mut self) {
         if self.dest_is_mem {
-            if self.instruction.reg2 >= RegisterType::AF {
-                Emu::cycles(1);
+            if Self::is_16bit(self.instruction.reg2) {
+                Timer::cycles(self, 1);
                 Bus::write16(self, self.mem_dest, self.fetched_data);
             } else {
                 Bus::write(self, self.mem_dest, self.fetched_data as u8);
             }
-            Emu::cycles(1);
+
+            Timer::cycles(self, 1);
+
             return;
         }
 
@@ -45,7 +48,8 @@ impl<'a> CPU<'a> {
             self.set_flags(0, 0, hflag as i8, cflag as i8);
             self.set_register(
                 self.instruction.reg1,
-                self.read_register(self.instruction.reg2) + (self.fetched_data as i8) as u16,
+                self.read_register(self.instruction.reg2)
+                    .wrapping_add(self.fetched_data),
             );
 
             return;
@@ -64,13 +68,13 @@ impl<'a> CPU<'a> {
             self::Bus::write(self, self.mem_dest, self.registers.a);
         }
 
-        Emu::cycles(1);
+        Timer::cycles(self, 1);
     }
 
     fn process_jp(&mut self) {
         if self.check_condition() {
             self.registers.pc = self.fetched_data;
-            Emu::cycles(1);
+            Timer::cycles(self, 1);
         }
     }
 
@@ -91,19 +95,19 @@ impl<'a> CPU<'a> {
 
     fn process_ret(&mut self) {
         if self.instruction.cond_type != ConditionType::NONE {
-            Emu::cycles(1);
+            Timer::cycles(self, 1);
         }
 
         if self.check_condition() {
             let lo: u16 = Stack::pop(self) as u16;
-            Emu::cycles(1);
+            Timer::cycles(self, 1);
             let hi: u16 = Stack::pop(self) as u16;
-            Emu::cycles(1);
+            Timer::cycles(self, 1);
 
             let n: u16 = (hi << 8) | lo;
             self.registers.pc = n;
 
-            Emu::cycles(1);
+            Timer::cycles(self, 1);
         }
     }
 
@@ -114,9 +118,9 @@ impl<'a> CPU<'a> {
 
     fn process_pop(&mut self) {
         let lo: u16 = Stack::pop(self) as u16;
-        Emu::cycles(1);
+        Timer::cycles(self, 1);
         let hi: u16 = Stack::pop(self) as u16;
-        Emu::cycles(1);
+        Timer::cycles(self, 1);
 
         let n: u16 = (hi << 8) | lo;
 
@@ -129,21 +133,21 @@ impl<'a> CPU<'a> {
 
     fn process_push(&mut self) {
         let hi = (self.read_register(self.instruction.reg1) >> 8) & 0xFF;
-        Emu::cycles(1);
+        Timer::cycles(self, 1);
         Stack::push(self, hi as u8);
 
         let lo = self.read_register(self.instruction.reg1) & 0xFF;
-        Emu::cycles(1);
+        Timer::cycles(self, 1);
         Stack::push(self, lo as u8);
 
-        Emu::cycles(1);
+        Timer::cycles(self, 1);
     }
 
     fn process_inc(&mut self) {
         let mut val: u16 = self.read_register(self.instruction.reg1).wrapping_add(1);
 
         if Self::is_16bit(self.instruction.reg1) {
-            Emu::cycles(1);
+            Timer::cycles(self, 1);
         }
 
         if self.instruction.reg1 == RegisterType::HL
@@ -168,7 +172,7 @@ impl<'a> CPU<'a> {
         let mut val: u16 = self.read_register(self.instruction.reg1).wrapping_sub(1);
 
         if Self::is_16bit(self.instruction.reg1) {
-            Emu::cycles(1);
+            Timer::cycles(self, 1);
         }
 
         if self.instruction.reg1 == RegisterType::HL
@@ -193,7 +197,7 @@ impl<'a> CPU<'a> {
             .wrapping_add(self.fetched_data as u32);
 
         if Self::is_16bit(self.instruction.reg1) {
-            Emu::cycles(1);
+            Timer::cycles(self, 1);
         }
 
         if self.instruction.reg1 == RegisterType::SP {
@@ -267,20 +271,25 @@ impl<'a> CPU<'a> {
     fn process_sbc(&mut self) {
         let val: u8 = (self.fetched_data as u16 + self.registers.flag_c() as u16) as u8;
 
-        let z: i8 = (self.read_register(self.instruction.reg1) - (val as u16) == 0) as i8;
+        let z: i8 = ((self
+            .read_register(self.instruction.reg1)
+            .wrapping_sub(val as u16))
+            == 0) as i8;
 
         let h: i8 = (((self.read_register(self.instruction.reg1)) as i8)
             & 0xF - ((self.fetched_data as i8) & 0xF) - (self.registers.flag_c() as i8)
             < 0) as i8;
 
-        let c: i8 = ((self.read_register(self.instruction.reg1) as i8)
-            - (self.fetched_data as i8)
-            - (self.registers.flag_c() as i8)
+        let c: i8 = ((self
+            .read_register(self.instruction.reg1)
+            .wrapping_sub((self.fetched_data)))
+        .wrapping_sub(self.registers.flag_c() as u16)
             < 0) as i8;
 
         self.set_register(
             self.instruction.reg1,
-            self.read_register(self.instruction.reg1) - val as u16,
+            self.read_register(self.instruction.reg1)
+                .wrapping_sub(val as u16),
         );
         self.set_flags(z, 1, h, c);
     }
@@ -317,15 +326,10 @@ impl<'a> CPU<'a> {
         let bit_op: u8 = (op >> 6) & 0b11;
         let mut reg_val: u8 = self.read_register_8bits(reg);
 
-        println!(
-            "OP: {:02X} | reg: {:#?} | bit: {} | bit_op: {} | reg_val: {}",
-            op, reg, bit, bit_op, reg_val
-        );
-
-        Emu::cycles(1);
+        Timer::cycles(self, 1);
 
         if (reg == RegisterType::HL) {
-            Emu::cycles(2);
+            Timer::cycles(self, 2);
         }
 
         match bit_op {
@@ -534,28 +538,28 @@ impl<'a> CPU<'a> {
 
     fn set_flags(&mut self, z: i8, n: i8, h: i8, c: i8) {
         if z != -1 {
-            self.registers.f = set_bit(self.registers.f, 7, z == 1);
+            self.registers.f = set_bit(self.registers.f, 7, z != 0);
         }
         if n != -1 {
-            self.registers.f = set_bit(self.registers.f, 6, n == 1);
+            self.registers.f = set_bit(self.registers.f, 6, n != 0);
         }
         if h != -1 {
-            self.registers.f = set_bit(self.registers.f, 5, h == 1);
+            self.registers.f = set_bit(self.registers.f, 5, h != 0);
         }
         if c != -1 {
-            self.registers.f = set_bit(self.registers.f, 4, c == 1);
+            self.registers.f = set_bit(self.registers.f, 4, c != 0);
         }
     }
 
     pub fn goto_addr(&mut self, addr: u16, pushpc: bool) {
         if self.check_condition() {
             if pushpc {
-                Emu::cycles(2);
+                Timer::cycles(self, 2);
                 Stack::push16(self, self.registers.pc);
             }
 
             self.registers.pc = addr;
-            Emu::cycles(1);
+            Timer::cycles(self, 1);
         }
     }
 

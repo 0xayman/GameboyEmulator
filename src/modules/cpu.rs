@@ -1,11 +1,14 @@
 use crate::enums::address_mode::AddressMode;
 use crate::enums::instruction_type::InstructionType;
 use crate::modules::bus::Bus;
+use crate::modules::dbg::DBG;
 use crate::modules::emu::Emu;
 use crate::modules::instruction::Instruction;
 use crate::modules::interrupts::Interrupt;
 use crate::modules::registers::Registers;
-pub struct CPU<'a> {
+use crate::modules::timer::Timer;
+
+pub struct CPU {
     pub registers: Registers,
     pub fetched_data: u16,
     pub mem_dest: u16,
@@ -19,13 +22,15 @@ pub struct CPU<'a> {
     pub int_master_enabled: bool,
     pub enabling_ime: bool,
     pub ie_register: u8,
-    pub intrrupt_flags: u8,
+    pub interrupt_flags: u8,
 
-    pub bus: &'a mut Bus<'a>,
+    pub bus: Bus,
+    pub dbg: DBG,
+    pub timer: Timer,
 }
 
-impl<'a> CPU<'a> {
-    pub fn new(bus: &'a mut Bus<'a>) -> Self {
+impl CPU {
+    pub fn new() -> Self {
         Self {
             registers: Registers::new(),
             fetched_data: 0,
@@ -39,15 +44,31 @@ impl<'a> CPU<'a> {
             int_master_enabled: false,
             enabling_ime: false,
             ie_register: 0,
-            intrrupt_flags: 0,
+            interrupt_flags: 0,
 
-            bus: bus,
+            bus: Bus::new(),
+            dbg: DBG::default(),
+            timer: Timer::default(),
         }
     }
 
     pub fn init(&mut self) {
         self.registers.pc = 0x100;
+        self.registers.sp = 0xFFFE;
         self.registers.a = 0x01;
+        self.registers.f = 0xB0;
+        self.registers.b = 0x00;
+        self.registers.c = 0x13;
+        self.registers.d = 0x00;
+        self.registers.e = 0xD8;
+        self.registers.h = 0x01;
+        self.registers.l = 0x4D;
+        self.ie_register = 0;
+        self.interrupt_flags = 0;
+        self.int_master_enabled = false;
+        self.enabling_ime = false;
+
+        self.timer.div = 0xABCC;
     }
 
     fn fetch_instruction(&mut self) {
@@ -61,6 +82,7 @@ impl<'a> CPU<'a> {
             let pc: u16 = self.registers.pc;
 
             self.fetch_instruction();
+            Timer::cycles(self, 1);
             self.fetch_data();
 
             let mut flags: [char; 4] = [' '; 4];
@@ -71,22 +93,30 @@ impl<'a> CPU<'a> {
             flags[3] = if f & (1 << 4) != 0 { 'C' } else { '-' };
 
             println!(
-                "PC: {:#06X} | {:#?} | OPCODE: ({:02X})({:2X})({:2X}) | A: {:02X} | F: {} | BC: {:02X}{:02X} | DE: {:02X}{:02X} | HL: {:02X}{:02X} | Mode: {:#?}",
-                pc, self.instruction.ins_type, self.opcode, Bus::read(self, pc + 1), Bus::read(self, pc + 2), self.registers.a, flags.iter().collect::<String>() ,self.registers.b, self.registers.c, self.registers.d, self.registers.e, self.registers.h, self.registers.l, self.instruction.addr_mode
+                "TICKS: {:04X} | PC: {:#06X} | {:#?} | OPCODE: ({:02X})({:2X})({:2X}) | A: {:02X} | F: {} | BC: {:02X}{:02X} | DE: {:02X}{:02X} | HL: {:02X}{:02X} | Mode: {:#?}",
+                self.timer.ticks ,pc, self.instruction.ins_type, self.opcode, Bus::read(self, pc + 1), Bus::read(self, pc + 2), self.registers.a, flags.iter().collect::<String>() ,self.registers.b, self.registers.c, self.registers.d, self.registers.e, self.registers.h, self.registers.l, self.instruction.addr_mode
             );
+
+            DBG::update(self);
+            DBG::print(self);
 
             self.execute();
         } else {
-            Emu::cycles(1);
+            // CPU IS HALTED
+            Timer::cycles(self, 1);
 
-            if self.intrrupt_flags != 0 {
+            if self.interrupt_flags != 0 {
                 self.halted = false;
             }
         }
 
         if self.int_master_enabled {
-            Interrupt::handle(&self);
+            Interrupt::handle(self);
             self.enabling_ime = false;
+        }
+
+        if (self.enabling_ime) {
+            self.int_master_enabled = true;
         }
 
         return true;

@@ -368,7 +368,7 @@ impl Instruction {
                 reg1: RegisterType::HL,
                 ..Instruction::default()
             },
-            0x07 => Instruction {
+            0x37 => Instruction {
                 ins_type: InstructionType::SCF,
                 ..Instruction::default()
             },
@@ -1537,7 +1537,7 @@ impl Instruction {
             },
             0xE9 => Instruction {
                 ins_type: InstructionType::JP,
-                addr_mode: AddressMode::MR,
+                addr_mode: AddressMode::R,
                 reg1: RegisterType::HL,
                 ..Instruction::default()
             },

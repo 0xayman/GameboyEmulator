@@ -2,7 +2,7 @@ use crate::enums::{address_mode::AddressMode, register_type::RegisterType};
 use crate::modules::bus::Bus;
 use crate::modules::{cpu::CPU, emu::Emu};
 
-impl<'a> CPU<'a> {
+impl CPU {
     pub fn read_register(&self, reg_type: RegisterType) -> u16 {
         match reg_type {
             RegisterType::A => return self.registers.a as u16,

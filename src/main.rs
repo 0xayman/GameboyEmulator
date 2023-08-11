@@ -6,12 +6,15 @@ mod modules {
     pub mod cart;
     pub mod common;
     pub mod cpu;
+    pub mod dbg;
     pub mod emu;
     pub mod instruction;
     pub mod interrupts;
+    pub mod io;
     pub mod ram;
     pub mod registers;
     pub mod stack;
+    pub mod timer;
     pub mod ui;
 }
 
@@ -44,6 +47,5 @@ fn main() {
 
     println!("ROM PATH: {}", rom_path);
 
-    let mut emu = Emu::new();
-    emu.run(rom_path);
+    Emu::run(rom_path.clone());
 }

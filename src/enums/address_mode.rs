@@ -1,0 +1,25 @@
+#[derive(Debug, PartialEq, Clone, Copy)]
+#[allow(dead_code)]
+pub enum AddressMode {
+    IMP,
+    RD16,
+    RR,
+    MRR,
+    R,
+    RD8,
+    RMR,
+    RHLI,
+    RHLD,
+    HLIR,
+    HLDR,
+    RA8,
+    A8R,
+    HLSPR,
+    D16,
+    D8,
+    D16R,
+    MRD8,
+    MR,
+    A16R,
+    RA16,
+}

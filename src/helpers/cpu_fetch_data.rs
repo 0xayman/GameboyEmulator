@@ -1,6 +1,6 @@
 use crate::{
     enums::{address_mode::AddressMode, register_type::RegisterType},
-    modules::{bus::Bus, cpu::CPU, emu::Emu, timer::Timer},
+    modules::{bus::Bus, cpu::CPU, timer::Timer},
 };
 
 impl CPU {
@@ -182,10 +182,6 @@ impl CPU {
                 Timer::cycles(self, 1);
                 return;
             }
-            _ => panic!(
-                "Unkown Addressing Mode: {:#?} | Opcode: {:02X}",
-                self.instruction.addr_mode, self.opcode
-            ),
         }
     }
 }

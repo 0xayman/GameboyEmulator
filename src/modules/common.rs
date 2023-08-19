@@ -13,10 +13,6 @@ pub fn set_bit(value: u8, bit: u8, on: bool) -> u8 {
     }
 }
 
-pub fn between(value: u16, min: u16, max: u16) -> bool {
-    (value >= min) && (value <= max)
-}
-
-pub fn delay(ms: u32) {
+pub fn delay(_: u32) {
     thread::sleep(Duration::from_millis(10));
 }

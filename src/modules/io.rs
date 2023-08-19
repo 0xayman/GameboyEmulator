@@ -1,4 +1,4 @@
-use crate::modules::{common, cpu::CPU, timer::Timer};
+use crate::modules::{cpu::CPU, timer::Timer};
 
 pub struct IO {
     pub serial_data: [u8; 2],

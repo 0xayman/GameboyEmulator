@@ -1,15 +1,9 @@
-use crate::modules::bus::Bus;
 use crate::modules::cart::Cart;
 use crate::modules::common;
 use crate::modules::cpu::CPU;
-use crate::modules::io::IO;
-use crate::modules::ram::RAM;
-use crate::modules::timer::Timer;
-use crate::modules::ui::UI;
+use crate::modules::ui::ui;
 use std::sync::mpsc;
 use std::thread;
-
-use super::dbg;
 
 pub struct Emu {
     paused: bool,
@@ -30,7 +24,6 @@ impl Emu {
         let mut cpu = CPU::new();
         Cart::load(&mut cpu.bus.cart, rom_path);
 
-        cpu.timer.init();
         cpu.init();
 
         emu.running = true;
@@ -69,7 +62,7 @@ impl Emu {
         let cpu_thread_handler =
             thread::spawn(move || Self::run_cpu_thread(&mut emu, &rom_path, rx));
 
-        UI::init(tx);
+        ui::init(tx);
 
         cpu_thread_handler.join().unwrap();
 

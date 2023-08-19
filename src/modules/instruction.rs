@@ -26,17 +26,6 @@ impl Default for Instruction {
 }
 
 impl Instruction {
-    pub fn new() -> Self {
-        Self {
-            ins_type: InstructionType::NONE,
-            addr_mode: AddressMode::IMP,
-            reg1: RegisterType::NONE,
-            reg2: RegisterType::NONE,
-            cond_type: ConditionType::NONE,
-            param: None,
-        }
-    }
-
     pub fn instruction_by_opcode(opcode: u8) -> Instruction {
         match opcode {
             0x00 => Instruction {
@@ -1635,12 +1624,10 @@ impl Instruction {
                 param: Some(0x38),
                 ..Instruction::default()
             },
-            other => Instruction {
+            _ => Instruction {
                 ins_type: InstructionType::UNDEFINED,
                 ..Instruction::default()
             },
         }
     }
-
-    pub fn instruction_name(ins_type: InstructionType) {}
 }

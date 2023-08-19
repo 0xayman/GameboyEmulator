@@ -1,13 +1,10 @@
 use std::fs::OpenOptions;
 use std::io::Write;
 
-use crate::enums::address_mode::AddressMode;
-use crate::enums::instruction_type::InstructionType;
 use crate::modules::bus::Bus;
 use crate::modules::dbg::DBG;
-use crate::modules::emu::Emu;
 use crate::modules::instruction::Instruction;
-use crate::modules::interrupts::Interrupt;
+use crate::modules::interrupts::interrupt;
 use crate::modules::registers::Registers;
 use crate::modules::timer::Timer;
 
@@ -68,8 +65,8 @@ impl CPU {
         self.registers.l = 0x4D;
         self.ie_register = 0;
         self.interrupt_flags = 0;
-        self.int_master_enabled = false;
-        self.enabling_ime = false;
+        self.int_master_enabled = true;
+        self.enabling_ime = true;
 
         self.timer.div = 0xABCC;
     }
@@ -81,22 +78,7 @@ impl CPU {
     }
 
     pub fn step(&mut self) -> bool {
-        // println!("A:{:02X} F:{:02X} B:{:02X} C:{:02X} D:{:02X} E:{:02X} H:{:02X} L:{:02X} SP:{:04X} PC:{:04X} PCMEM:{:02X},{:02X},{:02X},{:02X}",
-        //     self.registers.a, self.registers.f, self.registers.b, self.registers.c, self.registers.d, self.registers.e, self.registers.h, self.registers.l,
-        //     self.registers.sp, self.registers.pc, Bus::read(self, self.registers.pc), Bus::read(self, self.registers.pc + 1), Bus::read(self, self.registers.pc + 2), Bus::read(self, self.registers.pc + 3)
-        // );
-
-        // Write the above print content to file log.txt
-        // let mut file = OpenOptions::new()
-        //     .write(true)
-        //     .append(true)
-        //     .open("log.txt")
-        //     .unwrap();
-
-        // file.write_all(format!("A:{:02X} F:{:02X} B:{:02X} C:{:02X} D:{:02X} E:{:02X} H:{:02X} L:{:02X} SP:{:04X} PC:{:04X} PCMEM:{:02X},{:02X},{:02X},{:02X}\n",
-        //     self.registers.a, self.registers.f, self.registers.b, self.registers.c, self.registers.d, self.registers.e, self.registers.h, self.registers.l,
-        //     self.registers.sp, self.registers.pc, Bus::read(self, self.registers.pc), Bus::read(self, self.registers.pc + 1), Bus::read(self, self.registers.pc + 2), Bus::read(self, self.registers.pc + 3)
-        // ).as_bytes()).unwrap();
+        // self.log();
 
         if !self.halted {
             let pc: u16 = self.registers.pc;
@@ -131,11 +113,11 @@ impl CPU {
         }
 
         if self.int_master_enabled {
-            Interrupt::handle(self);
+            interrupt::handle(self);
             self.enabling_ime = false;
         }
 
-        if (self.enabling_ime) {
+        if self.enabling_ime {
             self.int_master_enabled = true;
         }
         return true;
@@ -147,5 +129,24 @@ impl CPU {
 
     pub fn set_ie_register(&mut self, value: u8) {
         self.ie_register = value;
+    }
+
+    fn log(&self) {
+        println!("A:{:02X} F:{:02X} B:{:02X} C:{:02X} D:{:02X} E:{:02X} H:{:02X} L:{:02X} SP:{:04X} PC:{:04X} PCMEM:{:02X},{:02X},{:02X},{:02X}",
+            self.registers.a, self.registers.f, self.registers.b, self.registers.c, self.registers.d, self.registers.e, self.registers.h, self.registers.l,
+            self.registers.sp, self.registers.pc, Bus::read(self, self.registers.pc), Bus::read(self, self.registers.pc + 1), Bus::read(self, self.registers.pc + 2), Bus::read(self, self.registers.pc + 3)
+        );
+
+        // Write the above print content to file log.txt
+        let mut file = OpenOptions::new()
+            .write(true)
+            .append(true)
+            .open("logs.txt")
+            .unwrap();
+
+        file.write_all(format!("A:{:02X} F:{:02X} B:{:02X} C:{:02X} D:{:02X} E:{:02X} H:{:02X} L:{:02X} SP:{:04X} PC:{:04X} PCMEM:{:02X},{:02X},{:02X},{:02X}\n",
+            self.registers.a, self.registers.f, self.registers.b, self.registers.c, self.registers.d, self.registers.e, self.registers.h, self.registers.l,
+            self.registers.sp, self.registers.pc, Bus::read(self, self.registers.pc), Bus::read(self, self.registers.pc + 1), Bus::read(self, self.registers.pc + 2), Bus::read(self, self.registers.pc + 3)
+        ).as_bytes()).unwrap();
     }
 }

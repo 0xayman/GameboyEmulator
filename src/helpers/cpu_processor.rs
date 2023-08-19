@@ -1,5 +1,3 @@
-use std::borrow::BorrowMut;
-
 use crate::enums::address_mode::AddressMode;
 use crate::enums::condition_type::ConditionType;
 use crate::enums::instruction_type::InstructionType;
@@ -7,7 +5,6 @@ use crate::enums::register_type::RegisterType;
 use crate::modules::bus::Bus;
 use crate::modules::common::set_bit;
 use crate::modules::cpu::CPU;
-use crate::modules::emu::Emu;
 use crate::modules::stack::Stack;
 use crate::modules::timer::Timer;
 
@@ -50,7 +47,7 @@ impl CPU {
             self.set_register(
                 self.instruction.reg1,
                 self.read_register(self.instruction.reg2)
-                    .wrapping_add_signed(self.fetched_data as i16),
+                    .wrapping_add_signed(self.fetched_data as i8 as i16),
             );
             return;
         }
@@ -62,7 +59,7 @@ impl CPU {
         if self.instruction.reg1 == RegisterType::A {
             self.set_register(
                 self.instruction.reg1,
-                Bus::read(self, (0xFF00 | self.fetched_data)) as u16,
+                Bus::read(self, 0xFF00 | self.fetched_data) as u16,
             );
         } else {
             self::Bus::write(self, self.mem_dest, self.registers.a);
@@ -72,17 +69,13 @@ impl CPU {
     }
 
     fn process_jp(&mut self) {
-        if self.check_condition() {
-            self.registers.pc = self.fetched_data;
-            Timer::cycles(self, 1);
-        }
+        self.goto_addr(self.fetched_data, false)
     }
 
     fn process_jr(&mut self) {
-        let rel: i8 = (self.fetched_data as i8);
-        let addr: u16 = self.registers.pc.wrapping_add_signed(rel as i16);
+        let rel: i8 = (self.fetched_data & 0xFF) as i8;
+        let addr: u16 = self.registers.pc.wrapping_add(rel as u16);
         self.goto_addr(addr, false);
-        // panic!("STH WENT WRONG");
     }
 
     fn process_call(&mut self) {
@@ -165,7 +158,7 @@ impl CPU {
             return;
         }
 
-        self.set_flags(Some(val == 0), Some(false), Some(((val & 0x0F) == 0)), None);
+        self.set_flags(Some(val == 0), Some(false), Some((val & 0x0F) == 0), None);
     }
 
     fn process_dec(&mut self) {
@@ -241,7 +234,7 @@ impl CPU {
             );
         }
 
-        self.set_register(self.instruction.reg1, (val as u16 & 0xFFFF));
+        self.set_register(self.instruction.reg1, val as u16 & 0xFFFF);
         self.set_flags(z, Some(false), h, c);
     }
 
@@ -269,7 +262,7 @@ impl CPU {
 
         let h: Option<bool> = Some(
             ((self.read_register(self.instruction.reg1) as i32) & 0xF)
-                .wrapping_sub(((self.fetched_data as i32) & 0xF))
+                .wrapping_sub((self.fetched_data as i32) & 0xF)
                 < 0,
         );
 
@@ -353,7 +346,7 @@ impl CPU {
 
         Timer::cycles(self, 1);
 
-        if (reg == RegisterType::HL) {
+        if reg == RegisterType::HL {
             Timer::cycles(self, 2);
         }
 
@@ -376,7 +369,7 @@ impl CPU {
             }
             3 => {
                 // SET
-                reg_val |= (1 << bit);
+                reg_val |= 1 << bit;
                 self.set_register_8bits(reg, reg_val);
                 return;
             }
@@ -391,7 +384,7 @@ impl CPU {
                 let mut set_c: bool = false;
                 let mut res: u8 = (reg_val << 1) & 0xFF;
 
-                if (reg_val & (1 << 7) != 0) {
+                if reg_val & (1 << 7) != 0 {
                     res |= 1;
                     set_c = true;
                 }
@@ -404,7 +397,7 @@ impl CPU {
                 // RRC
                 let old: u8 = reg_val;
                 reg_val >>= 1;
-                reg_val |= (old << 7);
+                reg_val |= old << 7;
 
                 self.set_register_8bits(reg, reg_val);
                 self.set_flags(
@@ -434,7 +427,7 @@ impl CPU {
                 // RR
                 let old: u8 = reg_val;
                 reg_val >>= 1;
-                reg_val |= ((flag_c as u8) << 7);
+                reg_val |= (flag_c as u8) << 7;
 
                 self.set_register_8bits(reg, reg_val);
                 self.set_flags(
@@ -455,7 +448,7 @@ impl CPU {
                     Some(reg_val == 0),
                     Some(false),
                     Some(false),
-                    Some((old & 0x80 != 0)),
+                    Some(old & 0x80 != 0),
                 );
                 return;
             }
@@ -497,16 +490,16 @@ impl CPU {
     }
 
     fn process_rrca(&mut self) {
-        let b: u8 = (self.registers.a & 1);
+        let b: u8 = self.registers.a & 1;
         self.registers.a >>= 1;
-        self.registers.a |= (b << 7);
+        self.registers.a |= b << 7;
 
         self.set_flags(Some(false), Some(false), Some(false), Some(b != 0));
     }
 
     fn process_rlca(&mut self) {
         let mut u: u8 = self.registers.a;
-        let c: u8 = ((u >> 7) & 1);
+        let c: u8 = (u >> 7) & 1;
 
         u = (u << 1) | c;
         self.registers.a = u;
@@ -519,7 +512,7 @@ impl CPU {
         let new_c: u8 = self.registers.a & 1;
 
         self.registers.a >>= 1;
-        self.registers.a |= (carry << 7);
+        self.registers.a |= carry << 7;
 
         self.set_flags(Some(false), Some(false), Some(false), Some(new_c != 0))
     }
@@ -591,7 +584,7 @@ impl CPU {
     }
 
     fn decode_reg(reg: u8) -> RegisterType {
-        if (reg > 0b111) {
+        if reg > 0b111 {
             return RegisterType::NONE;
         }
 

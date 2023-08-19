@@ -1,9 +1,5 @@
-pub mod UI {
+pub mod ui {
     use std::sync::mpsc;
-
-    use sdl2::{event::Event, Sdl};
-
-    use crate::modules::emu::Emu;
 
     const SCREEN_WIDTH: u32 = 1024;
     const SCREEN_HEIGHT: u32 = 768;
@@ -13,7 +9,7 @@ pub mod UI {
         let video_subsystem = sdl_context.video().unwrap();
         println!("SDL INIT");
 
-        let ttf_context = sdl2::ttf::init().unwrap();
+        let _ttf_context = sdl2::ttf::init().unwrap();
         println!("TTF INIT");
 
         let window = video_subsystem

@@ -1,4 +1,4 @@
-use crate::{enums::interrupt_types::InterruptType, modules::interrupts::Interrupt};
+use crate::{enums::interrupt_types::InterruptType, modules::interrupts::interrupt};
 
 use crate::modules::cpu::CPU;
 
@@ -23,39 +23,35 @@ impl Default for Timer {
 }
 
 impl Timer {
-    pub fn init(&mut self) {
-        self.div = 0xAC00;
-    }
-
     pub fn tick(cpu: &mut CPU) {
         let prev_div = cpu.timer.div;
-        cpu.timer.div.wrapping_add(1);
+        cpu.timer.div = cpu.timer.div.wrapping_add(1);
 
         let mut timer_update: bool = false;
 
-        match (cpu.timer.tac & 0b11) {
+        match cpu.timer.tac & 0b11 {
             0b00 => {
-                timer_update = (prev_div & (1 << 9)) != 0 && !(cpu.timer.div & (1 << 9)) != 0;
+                timer_update = (prev_div & (1 << 9)) != 0 && !(cpu.timer.div & (1 << 9) != 0);
             }
             0b01 => {
-                timer_update = (prev_div & (1 << 3)) != 0 && !(cpu.timer.div & (1 << 3)) != 0;
+                timer_update = (prev_div & (1 << 3)) != 0 && !(cpu.timer.div & (1 << 3) != 0);
             }
             0b10 => {
-                timer_update = (prev_div & (1 << 5)) != 0 && !(cpu.timer.div & (1 << 5)) != 0;
+                timer_update = (prev_div & (1 << 5)) != 0 && !(cpu.timer.div & (1 << 5) != 0);
             }
             0b11 => {
-                timer_update = (prev_div & (1 << 7)) != 0 && !(cpu.timer.div & (1 << 7)) != 0;
+                timer_update = (prev_div & (1 << 7)) != 0 && !(cpu.timer.div & (1 << 7) != 0);
             }
             _ => {}
         }
 
         if timer_update && (cpu.timer.tac & (1 << 2)) != 0 {
-            cpu.timer.tima.wrapping_add(1);
-
             if cpu.timer.tima == 0xFF {
                 cpu.timer.tima = cpu.timer.tma;
-                Interrupt::request(cpu, InterruptType::TIMER);
+                interrupt::request(cpu, InterruptType::TIMER);
             }
+
+            cpu.timer.tima += 1;
         }
     }
 
@@ -69,6 +65,7 @@ impl Timer {
     }
 
     pub fn write(cpu: &mut CPU, address: u16, value: u8) {
+        // panic!("Writing to timer: {:X} = {:X}", address, value);
         match address {
             0xFF04 => {
                 // DIV
@@ -91,6 +88,7 @@ impl Timer {
     }
 
     pub fn read(cpu: &CPU, address: u16) -> u8 {
+        // panic!("Reading from timer: {:X}", address);
         match address {
             0xFF04 => (cpu.timer.div >> 8) as u8,
             0xFF05 => cpu.timer.tima,

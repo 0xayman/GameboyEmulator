@@ -1,6 +1,6 @@
-use crate::enums::{address_mode::AddressMode, register_type::RegisterType};
+use crate::enums::register_type::RegisterType;
 use crate::modules::bus::Bus;
-use crate::modules::{cpu::CPU, emu::Emu};
+use crate::modules::cpu::CPU;
 
 impl CPU {
     pub fn read_register(&self, reg_type: RegisterType) -> u16 {
@@ -24,7 +24,6 @@ impl CPU {
                 return ((self.registers.d as u16) << 8) | (self.registers.e as u16)
             }
             RegisterType::HL => {
-                let full: u16 = self.registers.h as u16 | self.registers.l as u16;
                 return ((self.registers.h as u16) << 8) | (self.registers.l as u16);
             }
 

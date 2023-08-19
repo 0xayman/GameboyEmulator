@@ -36,7 +36,6 @@ impl Bus {
             0xFFFF => cpu.get_ie_register(), // CPU ENABLE REGISTER
             _ => RAM::hram_read(&cpu.bus.ram, address),
         };
-        panic!("Bus read not implemented for address: {:X}", address);
     }
 
     pub fn write(cpu: &mut CPU, address: u16, value: u8) {
@@ -64,7 +63,7 @@ impl Bus {
     }
 
     pub fn write16(cpu: &mut CPU, address: u16, data: u16) {
-        Self::write(cpu, address + 1, ((data >> 8) as u8));
+        Self::write(cpu, address + 1, (data >> 8) as u8);
         Self::write(cpu, address, data as u8);
     }
 }

@@ -1,4 +1,4 @@
-pub mod Interrupt {
+pub mod interrupt {
     use crate::{
         enums::interrupt_types::InterruptType,
         modules::{cpu::CPU, stack::Stack},
@@ -25,7 +25,7 @@ pub mod Interrupt {
 
     fn check(cpu: &mut CPU, address: u16, interrupt_type: InterruptType) -> bool {
         let it: u8 = map_interrupt_type_to_u8(interrupt_type);
-        if ((cpu.interrupt_flags & it) != 0 && (cpu.ie_register & it) != 0) {
+        if cpu.interrupt_flags & it != 0 && (cpu.ie_register & it) != 0 {
             process(cpu, address);
             cpu.interrupt_flags &= !it;
             cpu.halted = false;
@@ -38,15 +38,15 @@ pub mod Interrupt {
     }
 
     pub fn handle(cpu: &mut CPU) {
-        if (check(cpu, 0x40, InterruptType::VBLANK)) {
+        if check(cpu, 0x40, InterruptType::VBLANK) {
             return;
-        } else if (check(cpu, 0x48, InterruptType::LCDSTAT)) {
+        } else if check(cpu, 0x48, InterruptType::LCDSTAT) {
             return;
-        } else if (check(cpu, 0x50, InterruptType::TIMER)) {
+        } else if check(cpu, 0x50, InterruptType::TIMER) {
             return;
-        } else if (check(cpu, 0x58, InterruptType::SERIAL)) {
+        } else if check(cpu, 0x58, InterruptType::SERIAL) {
             return;
-        } else if (check(cpu, 0x60, InterruptType::JOYPAD)) {
+        } else if check(cpu, 0x60, InterruptType::JOYPAD) {
             return;
         }
     }

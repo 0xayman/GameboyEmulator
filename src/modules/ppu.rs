@@ -1,20 +1,40 @@
-pub struct PPU {}
-
-pub struct OAMEntry {
-    pub y: u8,
-    pub x: u8,
-    pub tile: u8,
-
-    pub f_cgb_pn: u8,
-    pub f_cgb_vram_bank: u8,
-    pub f_pn: u8,
-    pub f_x_flip: u8,
-    pub f_y_flip: u8,
-    pub f_bgp: u8,
+pub struct PPU {
+    pub oam_ram: [u8; 0xA0],
+    pub vram: [u8; 0x2000],
 }
 
 impl PPU {
-    pub fn init() {}
+    pub fn new() -> Self {
+        Self {
+            oam_ram: [0; 0xA0],
+            vram: [0; 0x2000],
+        }
+    }
 
-    pub fn tick() {}
+    pub fn oam_write(&mut self, address: u16, value: u8) {
+        println!("OAM Write: {:#X} = {:#X}", address, value);
+        let mut address = address as usize;
+        if address >= 0xFE00 {
+            address = address - 0xFE00;
+        }
+
+        self.oam_ram[address as usize] = value;
+    }
+
+    pub fn oam_read(&self, address: u16) -> u8 {
+        let mut address = address as usize;
+        if address >= 0xFE00 {
+            address = address - 0xFE00;
+        }
+
+        self.oam_ram[address as usize]
+    }
+
+    pub fn vram_write(&mut self, address: u16, value: u8) {
+        self.vram[(address - 0x8000) as usize] = value;
+    }
+
+    pub fn vram_read(&self, address: u16) -> u8 {
+        self.vram[(address - 0x8000) as usize]
+    }
 }

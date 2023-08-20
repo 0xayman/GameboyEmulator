@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 maplit = "1.0.2"
+bitfield = "0.14.0"
 
 [dependencies.sdl2]
 version = "0.35.2"

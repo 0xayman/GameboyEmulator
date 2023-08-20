@@ -2,10 +2,13 @@ use crate::modules::cart::Cart;
 use crate::modules::cpu::CPU;
 use crate::modules::io::IO;
 use crate::modules::ram::RAM;
+
+use super::ppu::PPU;
 pub struct Bus {
     pub cart: Cart,
     pub ram: RAM,
     pub io: IO,
+    pub ppu: PPU,
 }
 
 impl Bus {
@@ -14,23 +17,20 @@ impl Bus {
             cart: Cart::new(),
             ram: RAM::new(),
             io: IO::new(),
+            ppu: PPU::new(),
         }
     }
 
     pub fn read(cpu: &CPU, address: u16) -> u8 {
         return match address {
             0x0000..=0x7FFF => Cart::read(&cpu.bus.cart, address), // ROM
-            0x8000..=0x9FFF => panic!("PPU read not implemented for address: {:X}", address), // CHAR DATA
+            0x8000..=0x9FFF => PPU::vram_read(&cpu.bus.ppu, address), // CHAR DATA
             0xA000..=0xBFFF => Cart::read(&cpu.bus.cart, address), // CART RAM
             0xC000..=0xDFFF => RAM::wram_read(&cpu.bus.ram, address), // WRAM
             0xE000..=0xFDFF => 0,                                  // Reserverd ECHO RAM,
-            0xFE00..=0xFE9F => {
-                println!("OAM read not implemented for address: {:X}", address); // OAM
-                return 0x0;
-            }
+            0xFE00..=0xFE9F => PPU::oam_read(&cpu.bus.ppu, address),
             0xFEA0..=0xFEFF => 0, // Reserved
             0xFF00..=0xFF7F => {
-                // IO
                 return IO::read(cpu, address);
             }
             0xFFFF => cpu.get_ie_register(), // CPU ENABLE REGISTER
@@ -41,11 +41,11 @@ impl Bus {
     pub fn write(cpu: &mut CPU, address: u16, value: u8) {
         match address {
             0x0000..=0x7FFF => Cart::write(&mut cpu.bus.cart, address, value), // ROM
-            0x8000..=0x9FFF => println!("PPU write not implemented for address: {:X}", address), // CHAR DATA
+            0x8000..=0x9FFF => PPU::vram_write(&mut cpu.bus.ppu, address, value), // CHAR DATA
             0xA000..=0xBFFF => Cart::write(&mut cpu.bus.cart, address, value), // CART RAM
             0xC000..=0xDFFF => RAM::wram_write(&mut cpu.bus.ram, address, value), // WRAM
             0xE000..=0xFDFF => (), // Reserverd ECHO RAM,
-            0xFE00..=0xFE9F => println!("OAM write not implemented for address: {:X}", address), // OAM
+            0xFE00..=0xFE9F => PPU::oam_write(&mut cpu.bus.ppu, address, value), // OAM
             0xFEA0..=0xFEFF => (), // Reserved
             0xFF00..=0xFF7F => {
                 IO::write(cpu, address, value);

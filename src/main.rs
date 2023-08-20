@@ -16,7 +16,6 @@ mod modules {
     pub mod registers;
     pub mod stack;
     pub mod timer;
-    pub mod ui;
 }
 
 mod enums {

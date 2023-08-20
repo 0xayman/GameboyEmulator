@@ -3,6 +3,7 @@ use crate::enums::condition_type::ConditionType;
 use crate::enums::instruction_type::InstructionType;
 use crate::enums::register_type::RegisterType;
 
+#[derive(Clone, Copy)]
 pub struct Instruction {
     pub ins_type: InstructionType,
     pub addr_mode: AddressMode,

@@ -43,35 +43,37 @@ impl Emu {
         let video_subsystem = sdl_context.video().unwrap();
         let _ttf_context = sdl2::ttf::init().unwrap();
 
-        let main_window = video_subsystem
-            .window("Gameboy Emulator", SCREEN_WIDTH, SCREEN_HEIGHT)
+        // let main_window = video_subsystem
+        //     .window("Gameboy Emulator", SCREEN_WIDTH, SCREEN_HEIGHT)
+        //     .position_centered()
+        //     .opengl()
+        //     .build()
+        //     .unwrap();
+
+        // let x_pos = main_window.position().0 + main_window.size().0 as i32;
+        // let y_pos = main_window.position().1;
+
+        let debug_window = video_subsystem
+            .window("Debug", 584, 864)
             .position_centered()
             .opengl()
             .build()
             .unwrap();
 
-        let x_pos = main_window.position().0 + main_window.size().0 as i32;
-        let y_pos = main_window.position().1;
-
-        let debug_window = video_subsystem
-            .window("Debug", 384, SCREEN_HEIGHT)
-            .position(x_pos, y_pos)
-            .opengl()
-            .build()
-            .unwrap();
-
-        let mut canvas1 = main_window.into_canvas().build().unwrap();
+        // let mut canvas1 = main_window.into_canvas().build().unwrap();
         let mut dbg_canvas = debug_window.into_canvas().build().unwrap();
 
-        canvas1.set_draw_color(Color::RGB(0, 0, 0));
-        canvas1.clear();
-        canvas1.present();
+        // canvas1.set_draw_color(Color::RGB(0, 0, 0));
+        // canvas1.clear();
+        // canvas1.present();
 
         dbg_canvas.set_draw_color(Color::RGB(17, 17, 17));
         dbg_canvas.clear();
         dbg_canvas.present();
 
         let mut event_pump = sdl_context.event_pump().unwrap();
+
+        let mut counter = 0x62AF;
 
         'gameboyloop: loop {
             for event in event_pump.poll_iter() {
@@ -94,7 +96,13 @@ impl Emu {
                 break;
             }
 
-            Self::update_ui(&cpu, &mut dbg_canvas);
+            counter -= 1;
+
+            if counter == 0 {
+                Self::update_ui(&cpu, &mut dbg_canvas);
+                dbg_canvas.present();
+                counter = 0x80;
+            }
         }
         return;
     }
@@ -104,10 +112,10 @@ impl Emu {
         let mut y_draw = 0;
         let mut tile_num = 0;
 
-        // make rectangle
-        let rect = sdl2::rect::Rect::new(0, 0, canvas.window().size().0, canvas.window().size().1);
-        canvas.set_draw_color(Color::RGB(17, 17, 17));
-        canvas.fill_rect(rect).unwrap();
+        // // make rectangle
+        // let rect = sdl2::rect::Rect::new(0, 0, canvas.window().size().0, canvas.window().size().1);
+        // canvas.set_draw_color(Color::RGB(17, 17, 17));
+        // canvas.fill_rect(rect).unwrap();
 
         let address = 0x8000;
 
@@ -122,6 +130,7 @@ impl Emu {
                     x_draw + (tile_x * SCALE),
                     y_draw + (tile_y * SCALE),
                 );
+
                 x_draw += 8 * SCALE;
                 tile_num += 1;
             }
@@ -148,14 +157,14 @@ impl Emu {
             let byte2: u8 = Bus::read(cpu, address + (tile_num * 16) + tile_y + 1);
 
             for bit in (0..7).rev() {
-                let hi = !!(byte1 & (1 << bit)) << 1;
-                let lo = !!(byte2 & (1 << bit));
+                let hi = (((byte1 & (1 << bit)) != 0) as u8) << 1;
+                let lo = ((byte2 & (1 << bit)) != 0) as u8;
 
                 let color = TILE_COLORS[(hi | lo) as usize];
 
                 // draw rectangle
                 let rect_x: i32 = (x + (7 - bit) * SCALE) as i32;
-                let rect_y = (y + tile_y * SCALE) as i32;
+                let rect_y = (y + tile_y / 2 * SCALE) as i32;
                 let rect_w = SCALE as u32;
                 let rect_h = SCALE as u32;
 

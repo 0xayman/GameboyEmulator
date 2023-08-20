@@ -103,8 +103,8 @@ impl CPU {
                 self.timer.ticks ,pc, self.instruction.ins_type, self.opcode, Bus::read(self, pc + 1), Bus::read(self, pc + 2), self.registers.a, flags.iter().collect::<String>() ,self.registers.b, self.registers.c, self.registers.d, self.registers.e, self.registers.h, self.registers.l, self.instruction.addr_mode
             );
 
-            DBG::update(self);
-            DBG::print(self);
+            // DBG::update(self);
+            // DBG::print(self);
 
             self.execute();
         } else {

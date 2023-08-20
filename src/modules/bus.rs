@@ -47,7 +47,9 @@ impl Bus {
     pub fn write(cpu: &mut CPU, address: u16, value: u8) {
         match address {
             0x0000..=0x7FFF => Cart::write(&mut cpu.bus.cart, address, value), // ROM
-            0x8000..=0x9FFF => PPU::vram_write(&mut cpu.bus.ppu, address, value), // CHAR DATA
+            0x8000..=0x9FFF => {
+                PPU::vram_write(&mut cpu.bus.ppu, address, value);
+            } // CHAR DATA
             0xA000..=0xBFFF => Cart::write(&mut cpu.bus.cart, address, value), // CART RAM
             0xC000..=0xDFFF => RAM::wram_write(&mut cpu.bus.ram, address, value), // WRAM
             0xE000..=0xFDFF => (), // Reserverd ECHO RAM,

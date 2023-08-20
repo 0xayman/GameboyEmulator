@@ -1,5 +1,6 @@
 use crate::modules::common;
 
+#[derive(Clone, Copy)]
 pub struct Registers {
     pub a: u8,
     pub f: u8,

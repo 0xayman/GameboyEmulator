@@ -8,6 +8,8 @@ use crate::modules::interrupts::interrupt;
 use crate::modules::registers::Registers;
 use crate::modules::timer::Timer;
 
+use super::dma::Dma;
+
 pub struct CPU {
     pub registers: Registers,
     pub fetched_data: u16,
@@ -27,6 +29,7 @@ pub struct CPU {
     pub bus: Bus,
     pub dbg: DBG,
     pub timer: Timer,
+    pub dma: Dma,
 }
 
 impl CPU {
@@ -49,6 +52,7 @@ impl CPU {
             bus: Bus::new(),
             dbg: DBG::default(),
             timer: Timer::default(),
+            dma: Dma::new(),
         }
     }
 
@@ -81,7 +85,7 @@ impl CPU {
         // self.log();
 
         if !self.halted {
-            // let pc: u16 = self.registers.pc;
+            let pc: u16 = self.registers.pc;
 
             self.fetch_instruction();
             Timer::cycles(self, 1);
@@ -94,13 +98,13 @@ impl CPU {
             flags[2] = if f & (1 << 5) != 0 { 'H' } else { '-' };
             flags[3] = if f & (1 << 4) != 0 { 'C' } else { '-' };
 
-            // println!(
-            //     "TICKS: {:04X} | PC: {:#06X} | {:#?} | OPCODE: ({:02X})({:2X})({:2X}) | A: {:02X} | F: {} | BC: {:02X}{:02X} | DE: {:02X}{:02X} | HL: {:02X}{:02X} | Mode: {:#?}",
-            //     self.timer.ticks ,pc, self.instruction.ins_type, self.opcode, Bus::read(self, pc + 1), Bus::read(self, pc + 2), self.registers.a, flags.iter().collect::<String>() ,self.registers.b, self.registers.c, self.registers.d, self.registers.e, self.registers.h, self.registers.l, self.instruction.addr_mode
-            // );
+            println!(
+                "TICKS: {:04X} | PC: {:#06X} | {:#?} | OPCODE: ({:02X})({:2X})({:2X}) | A: {:02X} | F: {} | BC: {:02X}{:02X} | DE: {:02X}{:02X} | HL: {:02X}{:02X} | Mode: {:#?}",
+                self.timer.ticks ,pc, self.instruction.ins_type, self.opcode, Bus::read(self, pc + 1), Bus::read(self, pc + 2), self.registers.a, flags.iter().collect::<String>() ,self.registers.b, self.registers.c, self.registers.d, self.registers.e, self.registers.h, self.registers.l, self.instruction.addr_mode
+            );
 
-            // DBG::update(self);
-            // DBG::print(self);
+            DBG::update(self);
+            DBG::print(self);
 
             self.execute();
         } else {

@@ -2,6 +2,8 @@ use crate::{enums::interrupt_types::InterruptType, modules::interrupts::interrup
 
 use crate::modules::cpu::CPU;
 
+use super::dma::Dma;
+
 pub struct Timer {
     pub div: u16,
     tima: u8,
@@ -56,11 +58,13 @@ impl Timer {
     }
 
     pub fn cycles(cpu: &mut CPU, cycles: u64) {
-        let n = cycles * 4;
+        for _ in 0..cycles {
+            for _ in 0..4 {
+                cpu.timer.ticks += 1;
+                Self::tick(cpu);
+            }
 
-        for _ in 0..n {
-            cpu.timer.ticks += 1;
-            Self::tick(cpu);
+            Dma::tick(cpu);
         }
     }
 

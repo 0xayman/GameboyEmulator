@@ -133,7 +133,6 @@ impl Emu {
 
     fn update_ui(cpu: &CPU, canvas: &mut sdl2::render::Canvas<sdl2::video::Window>) {
         Self::update_debug_window(cpu, canvas);
-        canvas.present();
     }
 
     fn display_tile(
@@ -147,8 +146,6 @@ impl Emu {
         for tile_y in (0..16).step_by(2) {
             let byte1: u8 = Bus::read(cpu, address + (tile_num * 16) + tile_y);
             let byte2: u8 = Bus::read(cpu, address + (tile_num * 16) + tile_y + 1);
-
-            // println!("Byte1: {:08b} | Byte2: {:08b}", byte1, byte2);
 
             for bit in (0..7).rev() {
                 let hi = !!(byte1 & (1 << bit)) << 1;

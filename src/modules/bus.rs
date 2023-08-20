@@ -28,7 +28,13 @@ impl Bus {
             0xA000..=0xBFFF => Cart::read(&cpu.bus.cart, address), // CART RAM
             0xC000..=0xDFFF => RAM::wram_read(&cpu.bus.ram, address), // WRAM
             0xE000..=0xFDFF => 0,                                  // Reserverd ECHO RAM,
-            0xFE00..=0xFE9F => PPU::oam_read(&cpu.bus.ppu, address),
+            0xFE00..=0xFE9F => {
+                if cpu.dma.is_trasferring() {
+                    return 0xFF;
+                }
+
+                return PPU::oam_read(&cpu.bus.ppu, address);
+            }
             0xFEA0..=0xFEFF => 0, // Reserved
             0xFF00..=0xFF7F => {
                 return IO::read(cpu, address);
@@ -45,9 +51,16 @@ impl Bus {
             0xA000..=0xBFFF => Cart::write(&mut cpu.bus.cart, address, value), // CART RAM
             0xC000..=0xDFFF => RAM::wram_write(&mut cpu.bus.ram, address, value), // WRAM
             0xE000..=0xFDFF => (), // Reserverd ECHO RAM,
-            0xFE00..=0xFE9F => PPU::oam_write(&mut cpu.bus.ppu, address, value), // OAM
+            0xFE00..=0xFE9F => {
+                if cpu.dma.is_trasferring() {
+                    return;
+                }
+
+                PPU::oam_write(&mut cpu.bus.ppu, address, value);
+            } // OAM
             0xFEA0..=0xFEFF => (), // Reserved
             0xFF00..=0xFF7F => {
+                println!("IO Write: {:#X} = {:#X}", address, value);
                 IO::write(cpu, address, value);
             }
             0xFFFF => cpu.set_ie_register(value), // CPU ENABLE REGISTER

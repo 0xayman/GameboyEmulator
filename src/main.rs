@@ -7,6 +7,7 @@ mod modules {
     pub mod common;
     pub mod cpu;
     pub mod dbg;
+    pub mod dma;
     pub mod emu;
     pub mod instruction;
     pub mod interrupts;

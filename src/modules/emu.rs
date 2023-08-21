@@ -5,6 +5,7 @@ use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 
 use super::bus::Bus;
+use super::ppu::PPU;
 
 const SCREEN_WIDTH: u32 = 1024;
 const SCREEN_HEIGHT: u32 = 768;
@@ -37,6 +38,7 @@ impl Emu {
         Cart::load(&mut cpu.bus.cart, &rom_path);
 
         cpu.init();
+        PPU::init(&mut cpu);
         cpu.timer.ticks = 0;
 
         let sdl_context = sdl2::init().unwrap();
@@ -73,7 +75,7 @@ impl Emu {
 
         let mut event_pump = sdl_context.event_pump().unwrap();
 
-        let mut counter = 0x62AF;
+        let mut prev_frame = 0;
 
         'gameboyloop: loop {
             for event in event_pump.poll_iter() {
@@ -96,13 +98,12 @@ impl Emu {
                 break;
             }
 
-            counter -= 1;
-
-            if counter == 0 {
+            if prev_frame != cpu.bus.ppu.current_frame {
                 Self::update_ui(&cpu, &mut dbg_canvas);
                 dbg_canvas.present();
-                counter = 0x80;
             }
+
+            prev_frame = cpu.bus.ppu.current_frame;
         }
         return;
     }
@@ -173,5 +174,16 @@ impl Emu {
                 canvas.fill_rect(rect).unwrap();
             }
         }
+    }
+
+    pub fn delay(ms: u64) {
+        std::thread::sleep(std::time::Duration::from_millis(ms));
+    }
+
+    pub fn get_ticks() -> u64 {
+        let now = std::time::SystemTime::now();
+        now.duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as u64
     }
 }

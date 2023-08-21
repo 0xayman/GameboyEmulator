@@ -1,17 +1,15 @@
 use crate::modules::{cpu::CPU, timer::Timer};
 
-use super::dma::Dma;
+use super::lcd::LCD;
 
 pub struct IO {
     pub serial_data: [u8; 2],
-    ly: u8,
 }
 
 impl IO {
     pub fn new() -> Self {
         Self {
             serial_data: [0; 2],
-            ly: 0,
         }
     }
 
@@ -21,11 +19,10 @@ impl IO {
             0xFF02 => cpu.bus.io.serial_data[1],
             0xFF04..=0xFF07 => Timer::read(cpu, address),
             0xFF0F => cpu.interrupt_flags,
-            0xFF44 => {
-                return cpu.bus.io.ly;
-            }
+            0xFF40..=0xFF4B => LCD::read(cpu, address),
+
             _ => {
-                println!("IO read not implemented for address: {:X}", address);
+                // println!("IO read not implemented for address: {:X}", address);
                 return 0;
             }
         };
@@ -41,12 +38,11 @@ impl IO {
             0xFF0F => {
                 cpu.interrupt_flags = value;
             }
-            0xFF46 => {
-                Dma::start(cpu, value);
-                panic!("DMA Start");
+            0xFF40..=0xFF4B => {
+                LCD::write(cpu, address, value);
             }
             _ => {
-                println!("IO write not implemented for address: {:X}", address);
+                // println!("IO write not implemented for address: {:X}", address);
             }
         };
     }

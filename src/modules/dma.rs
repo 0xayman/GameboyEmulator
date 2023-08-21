@@ -40,10 +40,6 @@ impl Dma {
 
         cpu.dma.byte += 1;
         cpu.dma.active = cpu.dma.byte < 0xA0;
-
-        if !cpu.dma.active {
-            println!("DMA End");
-        }
     }
 
     pub fn is_trasferring(&self) -> bool {

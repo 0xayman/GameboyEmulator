@@ -3,6 +3,7 @@ use crate::{enums::interrupt_types::InterruptType, modules::interrupts::interrup
 use crate::modules::cpu::CPU;
 
 use super::dma::Dma;
+use super::ppu::PPU;
 
 pub struct Timer {
     pub div: u16,
@@ -62,6 +63,7 @@ impl Timer {
             for _ in 0..4 {
                 cpu.timer.ticks += 1;
                 Self::tick(cpu);
+                PPU::tick(cpu);
             }
 
             Dma::tick(cpu);

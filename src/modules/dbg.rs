@@ -1,12 +1,12 @@
 use crate::modules::bus::Bus;
-use crate::modules::cpu::CPU;
+use crate::modules::cpu::Cpu;
 
-pub struct DBG {
+pub struct Dbg {
     msg: [char; 1024],
     msg_size: usize,
 }
 
-impl Default for DBG {
+impl Default for Dbg {
     fn default() -> Self {
         Self {
             msg: [' '; 1024],
@@ -15,8 +15,8 @@ impl Default for DBG {
     }
 }
 
-impl DBG {
-    pub fn update(cpu: &mut CPU) {
+impl Dbg {
+    pub fn update(cpu: &mut Cpu) {
         if Bus::read(cpu, 0xFF02) == 0x81 {
             let c = Bus::read(cpu, 0xFF01) as char;
 
@@ -27,7 +27,7 @@ impl DBG {
         }
     }
 
-    pub fn print(cpu: &CPU) {
+    pub fn print(cpu: &Cpu) {
         if cpu.dbg.msg[0] != ' ' {
             let dbg_str: String = cpu.dbg.msg[..cpu.dbg.msg_size].iter().collect();
             println!("DBG {}", dbg_str);

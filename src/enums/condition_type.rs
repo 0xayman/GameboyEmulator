@@ -2,9 +2,9 @@
 #[allow(dead_code)]
 
 pub enum ConditionType {
-    NONE,
-    NZ,
+    None,
+    Nz,
     Z,
-    NC,
+    Nc,
     C,
 }

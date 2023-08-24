@@ -31,18 +31,18 @@ impl Registers {
     }
 
     pub fn flag_z(&self) -> bool {
-        return common::bit(self.f, 7);
+        common::bit(self.f, 7)
     }
 
     pub fn flag_n(&self) -> bool {
-        return common::bit(self.f, 6);
+        common::bit(self.f, 6)
     }
 
     pub fn flag_h(&self) -> bool {
-        return common::bit(self.f, 5);
+        common::bit(self.f, 5)
     }
 
     pub fn flag_c(&self) -> bool {
-        return common::bit(self.f, 4);
+        common::bit(self.f, 4)
     }
 }

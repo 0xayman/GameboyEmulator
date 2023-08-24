@@ -1,4 +1,4 @@
-pub mod constants {
+pub mod cartridge_helpers {
     use maplit;
     use std::collections::HashMap;
 
@@ -109,6 +109,6 @@ pub mod constants {
             "MBC7+SENSOR+RUMBLE+RAM+BATTERY",
         ];
 
-        ROM_TYPES[*&key as usize]
+        ROM_TYPES[key as usize]
     }
 }

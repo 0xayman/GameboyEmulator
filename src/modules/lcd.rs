@@ -2,7 +2,7 @@ use sdl2::pixels::Color;
 
 use crate::enums::interrupt_types::InterruptType;
 
-use super::{cpu::CPU, dma::Dma, interrupts::interrupt};
+use super::{cpu::Cpu, dma::Dma, interrupts::interrupt};
 
 const TILE_COLORS: [Color; 4] = [
     Color::RGB(255, 255, 255),
@@ -11,7 +11,7 @@ const TILE_COLORS: [Color; 4] = [
     Color::RGB(0, 0, 0),
 ];
 
-pub struct LCD {
+pub struct Lcd {
     // Registers
     pub lcdc: u8,  // FF40
     pub lcds: u8,  // FF41
@@ -32,7 +32,7 @@ pub struct LCD {
     sp2_colors: [Color; 4],
 }
 
-impl LCD {
+impl Lcd {
     pub fn new() -> Self {
         Self {
             lcdc: 0,
@@ -102,10 +102,10 @@ impl LCD {
 
     pub fn get_lcds_mode(&self) -> LCDMode {
         match self.lcds & 0b0000_0011 {
-            0 => LCDMode::HBLANK,
-            1 => LCDMode::VBLANK,
-            2 => LCDMode::OAM,
-            3 => LCDMode::XFER,
+            0 => LCDMode::Hblank,
+            1 => LCDMode::Vblank,
+            2 => LCDMode::Oam,
+            3 => LCDMode::Xfer,
             _ => unreachable!(),
         }
     }
@@ -126,14 +126,14 @@ impl LCD {
         self.lcds & (src as u8)
     }
 
-    pub fn increment_ly(cpu: &mut CPU) {
+    pub fn increment_ly(cpu: &mut Cpu) {
         cpu.bus.lcd.ly += 1;
 
         if cpu.bus.lcd.ly == cpu.bus.lcd.lyc {
             cpu.bus.lcd.set_lyc(1);
 
-            if cpu.bus.lcd.lcds & StatSrc::LYC as u8 != 0 {
-                interrupt::request(cpu, InterruptType::LCDSTAT);
+            if cpu.bus.lcd.lcds & StatSrc::Lyc as u8 != 0 {
+                interrupt::request(cpu, InterruptType::LcdStat);
             }
         } else {
             cpu.bus.lcd.set_lyc(0);
@@ -154,14 +154,14 @@ impl LCD {
         self.wy = 0x00;
         self.wx = 0x00;
 
-        for i in 0..4 {
-            self.bg_colors[i] = TILE_COLORS[i];
-            self.sp1_colors[i] = TILE_COLORS[i];
-            self.sp2_colors[i] = TILE_COLORS[i];
+        for (i, color) in TILE_COLORS.iter().enumerate() {
+            self.bg_colors[i] = *color;
+            self.sp1_colors[i] = *color;
+            self.sp2_colors[i] = *color;
         }
     }
 
-    pub fn read(cpu: &CPU, address: u16) -> u8 {
+    pub fn read(cpu: &Cpu, address: u16) -> u8 {
         let offset = address - 0xFF40;
 
         match offset {
@@ -181,7 +181,7 @@ impl LCD {
         }
     }
 
-    pub fn write(cpu: &mut CPU, address: u16, value: u8) {
+    pub fn write(cpu: &mut Cpu, address: u16, value: u8) {
         let offset = address - 0xFF40;
 
         match offset {
@@ -229,15 +229,15 @@ impl LCD {
 }
 
 pub enum LCDMode {
-    HBLANK,
-    VBLANK,
-    OAM,
-    XFER,
+    Hblank,
+    Vblank,
+    Oam,
+    Xfer,
 }
 
 pub enum StatSrc {
-    HBLANK = (1 << 3),
-    VBLANK = (1 << 4),
-    OAM = (1 << 5),
-    LYC = (1 << 6),
+    Hblank = (1 << 3),
+    Vblank = (1 << 4),
+    Oam = (1 << 5),
+    Lyc = (1 << 6),
 }

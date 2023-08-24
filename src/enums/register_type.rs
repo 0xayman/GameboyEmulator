@@ -1,6 +1,6 @@
 #[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
 pub enum RegisterType {
-    NONE,
+    None,
     A,
     F,
     B,
@@ -9,10 +9,10 @@ pub enum RegisterType {
     E,
     H,
     L,
-    AF,
-    BC,
-    DE,
-    HL,
-    SP,
-    PC,
+    Af,
+    Bc,
+    De,
+    Hl,
+    Sp,
+    Pc,
 }

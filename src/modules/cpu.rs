@@ -2,7 +2,7 @@ use std::fs::OpenOptions;
 use std::io::Write;
 
 use crate::modules::bus::Bus;
-use crate::modules::dbg::DBG;
+use crate::modules::dbg::Dbg;
 use crate::modules::instruction::Instruction;
 use crate::modules::interrupts::interrupt;
 use crate::modules::registers::Registers;
@@ -12,7 +12,7 @@ use super::dma::Dma;
 
 const DEBUG: bool = false;
 
-pub struct CPU {
+pub struct Cpu {
     pub registers: Registers,
     pub fetched_data: u16,
     pub mem_dest: u16,
@@ -29,12 +29,12 @@ pub struct CPU {
     pub interrupt_flags: u8,
 
     pub bus: Bus,
-    pub dbg: DBG,
+    pub dbg: Dbg,
     pub timer: Timer,
     pub dma: Dma,
 }
 
-impl CPU {
+impl Cpu {
     pub fn new() -> Self {
         Self {
             registers: Registers::new(),
@@ -52,7 +52,7 @@ impl CPU {
             interrupt_flags: 0,
 
             bus: Bus::new(),
-            dbg: DBG::default(),
+            dbg: Dbg::default(),
             timer: Timer::default(),
             dma: Dma::new(),
         }
@@ -78,7 +78,7 @@ impl CPU {
     }
 
     fn fetch_instruction(&mut self) {
-        self.opcode = Bus::read(&self, self.registers.pc);
+        self.opcode = Bus::read(self, self.registers.pc);
         self.registers.pc += 1;
         self.instruction = Instruction::instruction_by_opcode(self.opcode);
     }
@@ -105,8 +105,8 @@ impl CPU {
                     self.timer.ticks ,pc, self.instruction.ins_type, self.opcode, Bus::read(self, pc + 1), Bus::read(self, pc + 2), self.registers.a, flags.iter().collect::<String>() ,self.registers.b, self.registers.c, self.registers.d, self.registers.e, self.registers.h, self.registers.l, self.instruction.addr_mode
                 );
 
-                DBG::update(self);
-                DBG::print(self);
+                Dbg::update(self);
+                Dbg::print(self);
             }
 
             self.execute();
@@ -127,11 +127,11 @@ impl CPU {
         if self.enabling_ime {
             self.int_master_enabled = true;
         }
-        return true;
+        true
     }
 
     pub fn get_ie_register(&self) -> u8 {
-        return self.ie_register;
+        self.ie_register
     }
 
     pub fn set_ie_register(&mut self, value: u8) {

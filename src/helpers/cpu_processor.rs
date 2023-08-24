@@ -4,14 +4,12 @@ use crate::enums::instruction_type::InstructionType;
 use crate::enums::register_type::RegisterType;
 use crate::modules::bus::Bus;
 use crate::modules::common::set_bit;
-use crate::modules::cpu::CPU;
+use crate::modules::cpu::Cpu;
 use crate::modules::stack::Stack;
 use crate::modules::timer::Timer;
 
-impl CPU {
-    fn process_none(&mut self) {
-        return;
-    }
+impl Cpu {
+    fn process_none(&mut self) {}
 
     fn process_nop(&mut self) {}
 
@@ -33,7 +31,7 @@ impl CPU {
             return;
         }
 
-        if self.instruction.addr_mode == AddressMode::HLSPR {
+        if self.instruction.addr_mode == AddressMode::HlSpR {
             let hflag: bool = (self.read_register(self.instruction.reg2) & 0xF)
                 + (self.fetched_data & 0xF)
                 >= 0x10;
@@ -87,7 +85,7 @@ impl CPU {
     }
 
     fn process_ret(&mut self) {
-        if self.instruction.cond_type != ConditionType::NONE {
+        if self.instruction.cond_type != ConditionType::None {
             Timer::cycles(self, 1);
         }
 
@@ -119,7 +117,7 @@ impl CPU {
 
         self.set_register(self.instruction.reg1, n);
 
-        if self.instruction.reg1 == RegisterType::AF {
+        if self.instruction.reg1 == RegisterType::Af {
             self.set_register(self.instruction.reg1, n & 0xFFF0);
         }
     }
@@ -143,12 +141,12 @@ impl CPU {
             Timer::cycles(self, 1);
         }
 
-        if self.instruction.reg1 == RegisterType::HL
-            && self.instruction.addr_mode == AddressMode::MR
+        if self.instruction.reg1 == RegisterType::Hl
+            && self.instruction.addr_mode == AddressMode::Mr
         {
-            val = (Bus::read(self, self.read_register(RegisterType::HL)) as u16).wrapping_add(1);
+            val = (Bus::read(self, self.read_register(RegisterType::Hl)) as u16).wrapping_add(1);
             val &= 0xFF;
-            Bus::write(self, self.read_register(RegisterType::HL), val as u8);
+            Bus::write(self, self.read_register(RegisterType::Hl), val as u8);
         } else {
             self.set_register(self.instruction.reg1, val);
             val = self.read_register(self.instruction.reg1);
@@ -168,11 +166,11 @@ impl CPU {
             Timer::cycles(self, 1);
         }
 
-        if self.instruction.reg1 == RegisterType::HL
-            && self.instruction.addr_mode == AddressMode::MR
+        if self.instruction.reg1 == RegisterType::Hl
+            && self.instruction.addr_mode == AddressMode::Mr
         {
-            val = (Bus::read(self, self.read_register(RegisterType::HL)) as u16).wrapping_sub(1);
-            Bus::write(self, self.read_register(RegisterType::HL), val as u8);
+            val = (Bus::read(self, self.read_register(RegisterType::Hl)) as u16).wrapping_sub(1);
+            Bus::write(self, self.read_register(RegisterType::Hl), val as u8);
         } else {
             self.set_register(self.instruction.reg1, val);
             val = self.read_register(self.instruction.reg1);
@@ -193,7 +191,7 @@ impl CPU {
             Timer::cycles(self, 1);
         }
 
-        if self.instruction.reg1 == RegisterType::SP {
+        if self.instruction.reg1 == RegisterType::Sp {
             val = self
                 .read_register(self.instruction.reg1)
                 .wrapping_add_signed(self.fetched_data as i8 as i16) as u32;
@@ -221,7 +219,7 @@ impl CPU {
             );
         }
 
-        if self.instruction.reg1 == RegisterType::SP {
+        if self.instruction.reg1 == RegisterType::Sp {
             z = Some(false);
             h = Some(
                 (self.read_register(self.instruction.reg1) & 0xF) + (self.fetched_data & 0xF)
@@ -234,7 +232,7 @@ impl CPU {
             );
         }
 
-        self.set_register(self.instruction.reg1, val as u16 & 0xFFFF);
+        self.set_register(self.instruction.reg1, val as u16);
         self.set_flags(z, Some(false), h, c);
     }
 
@@ -346,7 +344,7 @@ impl CPU {
 
         Timer::cycles(self, 1);
 
-        if reg == RegisterType::HL {
+        if reg == RegisterType::Hl {
             Timer::cycles(self, 2);
         }
 
@@ -354,7 +352,7 @@ impl CPU {
             1 => {
                 // BIT
                 self.set_flags(
-                    Some(!(reg_val & (1 << bit) != 0)),
+                    Some(reg_val & (1 << bit) == 0),
                     Some(false),
                     Some(true),
                     None,
@@ -382,7 +380,7 @@ impl CPU {
             0 => {
                 // RLC
                 let mut set_c: bool = false;
-                let mut res: u8 = (reg_val << 1) & 0xFF;
+                let mut res: u8 = reg_val << 1;
 
                 if reg_val & (1 << 7) != 0 {
                     res |= 1;
@@ -401,7 +399,7 @@ impl CPU {
 
                 self.set_register_8bits(reg, reg_val);
                 self.set_flags(
-                    Some(!(reg_val != 0)),
+                    Some(reg_val == 0),
                     Some(false),
                     Some(false),
                     Some((old & 1) != 0),
@@ -416,10 +414,10 @@ impl CPU {
 
                 self.set_register_8bits(reg, reg_val);
                 self.set_flags(
-                    Some(!(reg_val != 0)),
+                    Some(reg_val == 0),
                     Some(false),
                     Some(false),
-                    Some(!!(old & 0x80 != 0)),
+                    Some(old & 0x80 == 0),
                 );
                 return;
             }
@@ -431,7 +429,7 @@ impl CPU {
 
                 self.set_register_8bits(reg, reg_val);
                 self.set_flags(
-                    Some(!(reg_val != 0)),
+                    Some(reg_val == 0),
                     Some(false),
                     Some(false),
                     Some(old & 1 != 0),
@@ -548,7 +546,7 @@ impl CPU {
         }
 
         if self.registers.flag_n() {
-            self.registers.a = self.registers.a.wrapping_add_signed(u * -1);
+            self.registers.a = self.registers.a.wrapping_add_signed(-u);
         } else {
             self.registers.a = self.registers.a.wrapping_add(u as u8);
         }
@@ -585,10 +583,10 @@ impl CPU {
 
     fn decode_reg(reg: u8) -> RegisterType {
         if reg > 0b111 {
-            return RegisterType::NONE;
+            return RegisterType::None;
         }
 
-        return Self::register_lookup(reg as usize);
+        Self::register_lookup(reg as usize)
     }
 
     fn register_lookup(index: usize) -> RegisterType {
@@ -599,7 +597,7 @@ impl CPU {
             RegisterType::E,
             RegisterType::H,
             RegisterType::L,
-            RegisterType::HL,
+            RegisterType::Hl,
             RegisterType::A,
         ];
 
@@ -607,21 +605,21 @@ impl CPU {
     }
 
     fn is_16bit(reg_type: RegisterType) -> bool {
-        return reg_type >= RegisterType::AF;
+        reg_type >= RegisterType::Af
     }
 
     fn set_flags(&mut self, z: Option<bool>, n: Option<bool>, h: Option<bool>, c: Option<bool>) {
-        if z.is_some() {
-            self.registers.f = set_bit(self.registers.f, 7, z.unwrap());
+        if let Some(z) = z {
+            self.registers.f = set_bit(self.registers.f, 7, z);
         }
-        if n.is_some() {
-            self.registers.f = set_bit(self.registers.f, 6, n.unwrap());
+        if let Some(n) = n {
+            self.registers.f = set_bit(self.registers.f, 6, n);
         }
-        if h.is_some() {
-            self.registers.f = set_bit(self.registers.f, 5, h.unwrap());
+        if let Some(h) = h {
+            self.registers.f = set_bit(self.registers.f, 5, h);
         }
-        if c.is_some() {
-            self.registers.f = set_bit(self.registers.f, 4, c.unwrap());
+        if let Some(c) = c {
+            self.registers.f = set_bit(self.registers.f, 4, c);
         }
     }
 
@@ -642,55 +640,55 @@ impl CPU {
         let c: bool = self.registers.flag_c();
 
         match &self.instruction.cond_type {
-            ConditionType::NONE => return true,
-            ConditionType::C => return c,
-            ConditionType::NC => return !c,
-            ConditionType::Z => return z,
-            ConditionType::NZ => return !z,
+            ConditionType::None => true,
+            ConditionType::C => c,
+            ConditionType::Nc => !c,
+            ConditionType::Z => z,
+            ConditionType::Nz => !z,
         }
     }
 
     pub fn execute(&mut self) {
-        return match &self.instruction.ins_type {
-            InstructionType::NONE => self.process_none(),
-            InstructionType::NOP => self.process_nop(),
-            InstructionType::LD => self.process_ld(),
-            InstructionType::LDH => self.process_ldh(),
-            InstructionType::JP => self.process_jp(),
-            InstructionType::DI => self.process_di(),
-            InstructionType::POP => self.process_pop(),
-            InstructionType::PUSH => self.process_push(),
-            InstructionType::JR => self.process_jr(),
-            InstructionType::CALL => self.process_call(),
-            InstructionType::RET => self.process_ret(),
-            InstructionType::RST => self.process_rst(),
-            InstructionType::RETI => self.process_reti(),
-            InstructionType::INC => self.process_inc(),
-            InstructionType::DEC => self.process_dec(),
-            InstructionType::ADD => self.process_add(),
-            InstructionType::ADC => self.process_adc(),
-            InstructionType::SUB => self.process_sub(),
-            InstructionType::SBC => self.process_sbc(),
-            InstructionType::OR => self.process_or(),
-            InstructionType::AND => self.process_and(),
-            InstructionType::XOR => self.process_xor(),
-            InstructionType::CP => self.process_cp(),
-            InstructionType::CB => self.process_cb(),
-            InstructionType::RRCA => self.process_rrca(),
-            InstructionType::RLCA => self.process_rlca(),
-            InstructionType::RRA => self.process_rra(),
-            InstructionType::RLA => self.process_rla(),
-            InstructionType::STOP => self.process_stop(),
-            InstructionType::HALT => self.process_halt(),
-            InstructionType::DAA => self.process_daa(),
-            InstructionType::CPL => self.process_cpl(),
-            InstructionType::SCF => self.process_csf(),
-            InstructionType::CCF => self.process_ccf(),
-            InstructionType::EI => self.process_ei(),
+        match &self.instruction.ins_type {
+            InstructionType::None => self.process_none(),
+            InstructionType::Nop => self.process_nop(),
+            InstructionType::Ld => self.process_ld(),
+            InstructionType::Ldh => self.process_ldh(),
+            InstructionType::Jp => self.process_jp(),
+            InstructionType::Di => self.process_di(),
+            InstructionType::Pop => self.process_pop(),
+            InstructionType::Push => self.process_push(),
+            InstructionType::Jr => self.process_jr(),
+            InstructionType::Call => self.process_call(),
+            InstructionType::Ret => self.process_ret(),
+            InstructionType::Rst => self.process_rst(),
+            InstructionType::Reti => self.process_reti(),
+            InstructionType::Inc => self.process_inc(),
+            InstructionType::Dec => self.process_dec(),
+            InstructionType::Add => self.process_add(),
+            InstructionType::Adc => self.process_adc(),
+            InstructionType::Sub => self.process_sub(),
+            InstructionType::Sbc => self.process_sbc(),
+            InstructionType::Or => self.process_or(),
+            InstructionType::And => self.process_and(),
+            InstructionType::Xor => self.process_xor(),
+            InstructionType::Cp => self.process_cp(),
+            InstructionType::Cb => self.process_cb(),
+            InstructionType::Rrca => self.process_rrca(),
+            InstructionType::Rlca => self.process_rlca(),
+            InstructionType::Rra => self.process_rra(),
+            InstructionType::Rla => self.process_rla(),
+            InstructionType::Stop => self.process_stop(),
+            InstructionType::Halt => self.process_halt(),
+            InstructionType::Daa => self.process_daa(),
+            InstructionType::Cpl => self.process_cpl(),
+            InstructionType::Scf => self.process_csf(),
+            InstructionType::Ccf => self.process_ccf(),
+            InstructionType::Ei => self.process_ei(),
             other => panic!(
                 "Cannot Process instruction: {:#?} with opcode: {:X}",
                 other, self.opcode
             ),
-        };
+        }
     }
 }

@@ -1,11 +1,11 @@
 use crate::modules::cart::Cart;
-use crate::modules::cpu::CPU;
+use crate::modules::cpu::Cpu;
 use sdl2::event::{Event, WindowEvent};
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 
 use super::bus::Bus;
-use super::ppu::PPU;
+use super::ppu::Ppu;
 
 const SCREEN_WIDTH: u32 = 1024;
 const SCREEN_HEIGHT: u32 = 768;
@@ -34,11 +34,11 @@ impl Emu {
     }
 
     pub fn run(rom_path: String) {
-        let mut cpu = CPU::new();
+        let mut cpu = Cpu::new();
         Cart::load(&mut cpu.bus.cart, &rom_path);
 
         cpu.init();
-        PPU::init(&mut cpu);
+        Ppu::init(&mut cpu);
         cpu.timer.ticks = 0;
 
         let sdl_context = sdl2::init().unwrap();
@@ -105,10 +105,9 @@ impl Emu {
 
             prev_frame = cpu.bus.ppu.current_frame;
         }
-        return;
     }
 
-    fn update_debug_window(cpu: &CPU, canvas: &mut sdl2::render::Canvas<sdl2::video::Window>) {
+    fn update_debug_window(cpu: &Cpu, canvas: &mut sdl2::render::Canvas<sdl2::video::Window>) {
         let mut x_draw = 0;
         let mut y_draw = 0;
         let mut tile_num = 0;
@@ -141,12 +140,12 @@ impl Emu {
         }
     }
 
-    fn update_ui(cpu: &CPU, canvas: &mut sdl2::render::Canvas<sdl2::video::Window>) {
+    fn update_ui(cpu: &Cpu, canvas: &mut sdl2::render::Canvas<sdl2::video::Window>) {
         Self::update_debug_window(cpu, canvas);
     }
 
     fn display_tile(
-        cpu: &CPU,
+        cpu: &Cpu,
         canvas: &mut sdl2::render::Canvas<sdl2::video::Window>,
         address: u16,
         tile_num: u16,

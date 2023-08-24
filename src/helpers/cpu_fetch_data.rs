@@ -1,40 +1,38 @@
 use crate::{
     enums::{address_mode::AddressMode, register_type::RegisterType},
-    modules::{bus::Bus, cpu::CPU, timer::Timer},
+    modules::{bus::Bus, cpu::Cpu, timer::Timer},
 };
 
-impl CPU {
+impl Cpu {
     pub fn fetch_data(&mut self) {
         self.mem_dest = 0;
         self.dest_is_mem = false;
 
         match &self.instruction.addr_mode {
-            AddressMode::IMP => return,
+            AddressMode::Imp => (),
 
             AddressMode::R => self.fetched_data = self.read_register(self.instruction.reg1),
 
-            AddressMode::RR => self.fetched_data = self.read_register(self.instruction.reg2),
+            AddressMode::Rr => self.fetched_data = self.read_register(self.instruction.reg2),
 
-            AddressMode::RD8 => {
-                self.fetched_data = Bus::read(&self, self.registers.pc) as u16;
+            AddressMode::Rd8 => {
+                self.fetched_data = Bus::read(self, self.registers.pc) as u16;
                 Timer::cycles(self, 1);
-                self.registers.pc += 1;
-                return;
+                self.registers.pc += 1
             }
 
-            AddressMode::RD16 | AddressMode::D16 => {
-                let lo: u16 = Bus::read(&self, self.registers.pc) as u16;
+            AddressMode::Rd16 | AddressMode::D16 => {
+                let lo: u16 = Bus::read(self, self.registers.pc) as u16;
                 Timer::cycles(self, 1);
 
-                let hi: u16 = Bus::read(&self, self.registers.pc + 1) as u16;
+                let hi: u16 = Bus::read(self, self.registers.pc + 1) as u16;
                 Timer::cycles(self, 1);
 
                 self.fetched_data = lo | (hi << 8);
-                self.registers.pc += 2;
-                return;
+                self.registers.pc += 2
             }
 
-            AddressMode::MRR => {
+            AddressMode::MrR => {
                 self.fetched_data = self.read_register(self.instruction.reg2);
                 self.mem_dest = self.read_register(self.instruction.reg1);
                 self.dest_is_mem = true;
@@ -42,145 +40,128 @@ impl CPU {
                 if self.instruction.reg1 == RegisterType::C {
                     self.mem_dest |= 0xFF00;
                 }
-
-                return;
             }
 
-            AddressMode::RMR => {
+            AddressMode::RmR => {
                 let mut addr: u16 = self.read_register(self.instruction.reg2);
 
                 if self.instruction.reg2 == RegisterType::C {
                     addr |= 0xFF00;
                 }
 
-                self.fetched_data = Bus::read(&self, addr) as u16;
-                Timer::cycles(self, 1);
-
-                return;
+                self.fetched_data = Bus::read(self, addr) as u16;
+                Timer::cycles(self, 1)
             }
 
-            AddressMode::RHLI => {
+            AddressMode::Rhli => {
                 let addr: u16 = self.read_register(self.instruction.reg2);
-                self.fetched_data = Bus::read(&self, addr) as u16;
+                self.fetched_data = Bus::read(self, addr) as u16;
 
                 Timer::cycles(self, 1);
 
-                let data: u16 = self.read_register(RegisterType::HL).wrapping_add(1);
-                self.set_register(RegisterType::HL, data);
-                return;
+                let data: u16 = self.read_register(RegisterType::Hl).wrapping_add(1);
+                self.set_register(RegisterType::Hl, data)
             }
 
-            AddressMode::RHLD => {
+            AddressMode::Rhld => {
                 let addr: u16 = self.read_register(self.instruction.reg2);
-                self.fetched_data = Bus::read(&self, addr) as u16;
+                self.fetched_data = Bus::read(self, addr) as u16;
 
                 Timer::cycles(self, 1);
 
-                let data: u16 = self.read_register(RegisterType::HL).wrapping_sub(1);
-                self.set_register(RegisterType::HL, data);
-                return;
+                let data: u16 = self.read_register(RegisterType::Hl).wrapping_sub(1);
+                self.set_register(RegisterType::Hl, data)
             }
 
-            AddressMode::HLIR => {
+            AddressMode::HliR => {
                 self.fetched_data = self.read_register(self.instruction.reg2);
                 self.mem_dest = self.read_register(self.instruction.reg1);
                 self.dest_is_mem = true;
 
-                let data: u16 = self.read_register(RegisterType::HL).wrapping_add(1);
-                self.set_register(RegisterType::HL, data);
-
-                return;
+                let data: u16 = self.read_register(RegisterType::Hl).wrapping_add(1);
+                self.set_register(RegisterType::Hl, data)
             }
 
-            AddressMode::HLDR => {
+            AddressMode::HldR => {
                 self.fetched_data = self.read_register(self.instruction.reg2);
                 self.mem_dest = self.read_register(self.instruction.reg1);
                 self.dest_is_mem = true;
 
-                let data: u16 = self.read_register(RegisterType::HL).wrapping_sub(1);
-                self.set_register(RegisterType::HL, data);
-                return;
+                let data: u16 = self.read_register(RegisterType::Hl).wrapping_sub(1);
+                self.set_register(RegisterType::Hl, data)
             }
 
-            AddressMode::RA8 => {
-                self.fetched_data = Bus::read(&self, self.registers.pc) as u16;
+            AddressMode::Ra8 => {
+                self.fetched_data = Bus::read(self, self.registers.pc) as u16;
                 Timer::cycles(self, 1);
-                self.registers.pc += 1;
-                return;
+                self.registers.pc += 1
             }
 
             AddressMode::A8R => {
-                let bus_data: u16 = Bus::read(&self, self.registers.pc) as u16;
+                let bus_data: u16 = Bus::read(self, self.registers.pc) as u16;
                 self.mem_dest = bus_data | 0xFF00;
                 self.dest_is_mem = true;
                 Timer::cycles(self, 1);
-                self.registers.pc += 1;
-                return;
+                self.registers.pc += 1
             }
 
-            AddressMode::HLSPR => {
-                self.fetched_data = Bus::read(&self, self.registers.pc) as u16;
+            AddressMode::HlSpR => {
+                self.fetched_data = Bus::read(self, self.registers.pc) as u16;
                 Timer::cycles(self, 1);
-                self.registers.pc += 1;
-                return;
+                self.registers.pc += 1
             }
 
             AddressMode::D8 => {
-                self.fetched_data = Bus::read(&self, self.registers.pc) as u16;
+                self.fetched_data = Bus::read(self, self.registers.pc) as u16;
                 Timer::cycles(self, 1);
-                self.registers.pc += 1;
-                return;
+                self.registers.pc += 1
             }
 
             AddressMode::A16R | AddressMode::D16R => {
-                let lo: u16 = Bus::read(&self, self.registers.pc) as u16;
+                let lo: u16 = Bus::read(self, self.registers.pc) as u16;
                 Timer::cycles(self, 1);
 
-                let hi: u16 = Bus::read(&self, self.registers.pc + 1) as u16;
+                let hi: u16 = Bus::read(self, self.registers.pc + 1) as u16;
                 Timer::cycles(self, 1);
 
                 self.mem_dest = lo | (hi << 8);
                 self.dest_is_mem = true;
 
                 self.registers.pc += 2;
-                self.fetched_data = self.read_register(self.instruction.reg2);
-                return;
+                self.fetched_data = self.read_register(self.instruction.reg2)
             }
 
-            AddressMode::MRD8 => {
-                self.fetched_data = Bus::read(&self, self.registers.pc) as u16;
+            AddressMode::MrD8 => {
+                self.fetched_data = Bus::read(self, self.registers.pc) as u16;
                 Timer::cycles(self, 1);
 
                 self.registers.pc += 1;
                 self.mem_dest = self.read_register(self.instruction.reg1);
-                self.dest_is_mem = true;
-                return;
+                self.dest_is_mem = true
             }
 
-            AddressMode::MR => {
+            AddressMode::Mr => {
                 self.mem_dest = self.read_register(self.instruction.reg1);
                 self.dest_is_mem = true;
 
                 let addr: u16 = self.read_register(self.instruction.reg1);
-                self.fetched_data = Bus::read(&self, addr) as u16;
+                self.fetched_data = Bus::read(self, addr) as u16;
 
-                Timer::cycles(self, 1);
-                return;
+                Timer::cycles(self, 1)
             }
 
-            AddressMode::RA16 => {
-                let lo: u16 = Bus::read(&self, self.registers.pc) as u16;
+            AddressMode::Ra16 => {
+                let lo: u16 = Bus::read(self, self.registers.pc) as u16;
                 Timer::cycles(self, 1);
 
-                let hi: u16 = Bus::read(&self, self.registers.pc + 1) as u16;
+                let hi: u16 = Bus::read(self, self.registers.pc + 1) as u16;
                 Timer::cycles(self, 1);
 
                 let addr: u16 = lo | (hi << 8);
 
                 self.registers.pc += 2;
-                self.fetched_data = Bus::read(&self, addr) as u16;
-                Timer::cycles(self, 1);
-                return;
+                self.fetched_data = Bus::read(self, addr) as u16;
+                Timer::cycles(self, 1)
             }
         }
     }

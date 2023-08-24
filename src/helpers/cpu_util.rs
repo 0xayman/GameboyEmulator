@@ -1,49 +1,41 @@
 use crate::enums::register_type::RegisterType;
 use crate::modules::bus::Bus;
-use crate::modules::cpu::CPU;
+use crate::modules::cpu::Cpu;
 
-impl CPU {
+impl Cpu {
     pub fn read_register(&self, reg_type: RegisterType) -> u16 {
         match reg_type {
-            RegisterType::A => return self.registers.a as u16,
-            RegisterType::F => return self.registers.f as u16,
-            RegisterType::B => return self.registers.b as u16,
-            RegisterType::C => return self.registers.c as u16,
-            RegisterType::D => return self.registers.d as u16,
-            RegisterType::E => return self.registers.e as u16,
-            RegisterType::H => return self.registers.h as u16,
-            RegisterType::L => return self.registers.l as u16,
+            RegisterType::A => self.registers.a as u16,
+            RegisterType::F => self.registers.f as u16,
+            RegisterType::B => self.registers.b as u16,
+            RegisterType::C => self.registers.c as u16,
+            RegisterType::D => self.registers.d as u16,
+            RegisterType::E => self.registers.e as u16,
+            RegisterType::H => self.registers.h as u16,
+            RegisterType::L => self.registers.l as u16,
 
-            RegisterType::AF => {
-                return ((self.registers.a as u16) << 8) | (self.registers.f as u16)
-            }
-            RegisterType::BC => {
-                return ((self.registers.b as u16) << 8) | (self.registers.c as u16)
-            }
-            RegisterType::DE => {
-                return ((self.registers.d as u16) << 8) | (self.registers.e as u16)
-            }
-            RegisterType::HL => {
-                return ((self.registers.h as u16) << 8) | (self.registers.l as u16);
-            }
+            RegisterType::Af => ((self.registers.a as u16) << 8) | (self.registers.f as u16),
+            RegisterType::Bc => ((self.registers.b as u16) << 8) | (self.registers.c as u16),
+            RegisterType::De => ((self.registers.d as u16) << 8) | (self.registers.e as u16),
+            RegisterType::Hl => ((self.registers.h as u16) << 8) | (self.registers.l as u16),
 
-            RegisterType::SP => return self.registers.sp,
-            RegisterType::PC => return self.registers.pc,
-            RegisterType::NONE => return 0,
+            RegisterType::Sp => self.registers.sp,
+            RegisterType::Pc => self.registers.pc,
+            RegisterType::None => 0,
         }
     }
 
     pub fn read_register_8bits(&self, reg_type: RegisterType) -> u8 {
         match reg_type {
-            RegisterType::A => return self.registers.a,
-            RegisterType::F => return self.registers.f,
-            RegisterType::B => return self.registers.b,
-            RegisterType::C => return self.registers.c,
-            RegisterType::D => return self.registers.d,
-            RegisterType::E => return self.registers.e,
-            RegisterType::H => return self.registers.h,
-            RegisterType::L => return self.registers.l,
-            RegisterType::HL => Bus::read(self, self.read_register(RegisterType::HL)),
+            RegisterType::A => self.registers.a,
+            RegisterType::F => self.registers.f,
+            RegisterType::B => self.registers.b,
+            RegisterType::C => self.registers.c,
+            RegisterType::D => self.registers.d,
+            RegisterType::E => self.registers.e,
+            RegisterType::H => self.registers.h,
+            RegisterType::L => self.registers.l,
+            RegisterType::Hl => Bus::read(self, self.read_register(RegisterType::Hl)),
             _other => panic!("INVALID REGISTER TYPE: {:?}", reg_type),
         }
     }
@@ -59,25 +51,25 @@ impl CPU {
             RegisterType::H => self.registers.h = data as u8,
             RegisterType::L => self.registers.l = data as u8,
 
-            RegisterType::AF => {
+            RegisterType::Af => {
                 self.registers.a = ((data & 0xFF00) >> 8) as u8;
                 self.registers.f = data as u8;
             }
-            RegisterType::BC => {
+            RegisterType::Bc => {
                 self.registers.b = ((data & 0xFF00) >> 8) as u8;
                 self.registers.c = data as u8;
             }
-            RegisterType::DE => {
+            RegisterType::De => {
                 self.registers.d = ((data & 0xFF00) >> 8) as u8;
                 self.registers.e = data as u8;
             }
-            RegisterType::HL => {
+            RegisterType::Hl => {
                 self.registers.h = ((data & 0xFF00) >> 8) as u8;
                 self.registers.l = data as u8;
             }
-            RegisterType::SP => self.registers.sp = data,
-            RegisterType::PC => self.registers.pc = data,
-            RegisterType::NONE => return,
+            RegisterType::Sp => self.registers.sp = data,
+            RegisterType::Pc => self.registers.pc = data,
+            RegisterType::None => (),
         }
     }
 
@@ -91,7 +83,7 @@ impl CPU {
             RegisterType::E => self.registers.e = data,
             RegisterType::H => self.registers.h = data,
             RegisterType::L => self.registers.l = data,
-            RegisterType::HL => Bus::write(self, self.read_register(RegisterType::HL), data),
+            RegisterType::Hl => Bus::write(self, self.read_register(RegisterType::Hl), data),
             _other => panic!("INVALID REGISTER TYPE: {:?}", reg_type),
         }
     }

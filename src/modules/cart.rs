@@ -1,6 +1,6 @@
 use std::{fs::File, io::Read};
 
-use crate::constants::constants;
+use crate::constants::cartridge_helpers;
 
 pub struct Cart {
     entry: [u8; 4],
@@ -40,7 +40,7 @@ impl Cart {
     }
 
     pub fn read(&self, address: u16) -> u8 {
-        return self.data[address as usize];
+        self.data[address as usize]
     }
 
     pub fn write(&mut self, address: u16, data: u8) {
@@ -81,10 +81,13 @@ impl Cart {
             (raw_global_checksum[0] as u16) | ((raw_global_checksum[1] as u16) << 8);
 
         println!("Title: {}", self.title.iter().collect::<String>());
-        println!("ROM Type: {}", constants::get_rom_type_name(self.cart_type));
+        println!(
+            "ROM Type: {}",
+            cartridge_helpers::get_rom_type_name(self.cart_type)
+        );
         println!(
             "Licensee Code: {}",
-            constants::get_lic_name(self.old_lic_code)
+            cartridge_helpers::get_lic_name(self.old_lic_code)
         );
         println!("ROM Size: {}KB", 32 << self.rom_size);
         println!("RAM Size: {}KB", 8 << self.ram_size);

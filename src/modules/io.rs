@@ -1,6 +1,6 @@
-use crate::modules::{cpu::CPU, timer::Timer};
+use crate::modules::{cpu::Cpu, timer::Timer};
 
-use super::lcd::LCD;
+use super::lcd::Lcd;
 
 pub struct IO {
     pub serial_data: [u8; 2],
@@ -13,22 +13,19 @@ impl IO {
         }
     }
 
-    pub fn read(cpu: &CPU, address: u16) -> u8 {
-        return match address {
+    pub fn read(cpu: &Cpu, address: u16) -> u8 {
+        match address {
             0xFF01 => cpu.bus.io.serial_data[0],
             0xFF02 => cpu.bus.io.serial_data[1],
             0xFF04..=0xFF07 => Timer::read(cpu, address),
             0xFF0F => cpu.interrupt_flags,
-            0xFF40..=0xFF4B => LCD::read(cpu, address),
+            0xFF40..=0xFF4B => Lcd::read(cpu, address),
 
-            _ => {
-                // println!("IO read not implemented for address: {:X}", address);
-                return 0;
-            }
-        };
+            _ => unimplemented!(),
+        }
     }
 
-    pub fn write(cpu: &mut CPU, address: u16, value: u8) {
+    pub fn write(cpu: &mut Cpu, address: u16, value: u8) {
         match address {
             0xFF01 => cpu.bus.io.serial_data[0] = value,
             0xFF02 => cpu.bus.io.serial_data[1] = value,
@@ -39,7 +36,7 @@ impl IO {
                 cpu.interrupt_flags = value;
             }
             0xFF40..=0xFF4B => {
-                LCD::write(cpu, address, value);
+                Lcd::write(cpu, address, value);
             }
             _ => {
                 // println!("IO write not implemented for address: {:X}", address);

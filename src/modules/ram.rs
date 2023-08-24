@@ -1,9 +1,9 @@
-pub struct RAM {
+pub struct Ram {
     wram: [u8; 0x2000],
     hram: [u8; 0x80],
 }
 
-impl RAM {
+impl Ram {
     pub fn new() -> Self {
         Self {
             wram: [0; 0x2000],
@@ -14,7 +14,7 @@ impl RAM {
     pub fn wram_read(&self, mut address: u16) -> u8 {
         address -= 0xC000;
 
-        return self.wram[address as usize];
+        self.wram[address as usize]
     }
 
     pub fn wram_write(&mut self, mut address: u16, value: u8) {
@@ -26,7 +26,7 @@ impl RAM {
     pub fn hram_read(&self, mut address: u16) -> u8 {
         address -= 0xFF80;
 
-        return self.hram[address as usize];
+        self.hram[address as usize]
     }
 
     pub fn hram_write(&mut self, mut address: u16, value: u8) {

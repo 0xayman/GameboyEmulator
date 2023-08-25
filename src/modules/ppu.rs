@@ -1,8 +1,11 @@
 use std::{cell::RefCell, rc::Rc};
 
+use sdl2::pixels::Color;
+
 use crate::enums::interrupt_types::InterruptType;
 
 use super::{
+    bus::Bus,
     cpu::Cpu,
     emu::Emu,
     interrupts::interrupt,
@@ -16,9 +19,16 @@ const XRES: i32 = 160;
 
 const COLORS_DEFAULT: [u32; 4] = [0xFFFFFFFF, 0xFFAAAAAA, 0xFF555555, 0xFF000000];
 
+const TILE_COLORS: [Color; 4] = [
+    Color::RGB(255, 255, 255),
+    Color::RGB(175, 175, 175),
+    Color::RGB(85, 85, 85),
+    Color::RGB(0, 0, 0),
+];
+
 pub struct FiFoEntry {
     next: Option<Rc<RefCell<FiFoEntry>>>,
-    value: u32, // color value
+    value: Color, // color value
 }
 
 pub struct FiFo {
@@ -75,7 +85,7 @@ pub struct Ppu {
 
     pub current_frame: u32,
     pub line_ticks: u32,
-    pub video_buffer: [u32; (XRES * YRES) as usize],
+    pub video_buffer: [Color; (XRES * YRES) as usize],
 
     pub target_frame_time: u64,
     pub prev_frame_time: u64,
@@ -93,7 +103,7 @@ impl Ppu {
 
             current_frame: 0,
             line_ticks: 0,
-            video_buffer: [0; (XRES * YRES) as usize],
+            video_buffer: [TILE_COLORS[0]; (XRES * YRES) as usize],
 
             target_frame_time: 1000 / 60,
             prev_frame_time: 0,
@@ -107,7 +117,7 @@ impl Ppu {
     pub fn init(cpu: &mut Cpu) {
         cpu.bus.ppu.current_frame = 0;
         cpu.bus.ppu.line_ticks = 0;
-        cpu.bus.ppu.video_buffer = [0; (XRES * YRES) as usize];
+        cpu.bus.ppu.video_buffer = [TILE_COLORS[0]; (XRES * YRES) as usize];
 
         Lcd::init(&mut cpu.bus.lcd);
         Lcd::set_lcds_mode(&mut cpu.bus.lcd, super::lcd::LCDMode::Oam);
@@ -230,7 +240,7 @@ impl Ppu {
         }
     }
 
-    fn pixel_fifo_push(cpu: &mut Cpu, value: u32) {
+    fn pixel_fifo_push(cpu: &mut Cpu, value: Color) {
         let next = Rc::new(RefCell::new(FiFoEntry { next: None, value }));
 
         if cpu.bus.ppu.pfc.fifo.head.is_none() {
@@ -252,8 +262,141 @@ impl Ppu {
         cpu.bus.ppu.pfc.fifo.size += 1;
     }
 
-    fn pipeline_process(_cpu: &mut Cpu) {}
-    fn pipeline_fifo_reset(_cpu: &mut Cpu) {}
+    fn pixel_fifo_pop(cpu: &mut Cpu) -> Color {
+        if cpu.bus.ppu.pfc.fifo.size == 0 {
+            panic!("FIFO underflow");
+        }
+
+        if cpu.bus.ppu.pfc.fifo.head.is_none() {
+            panic!("FIFO head is None");
+        }
+
+        let head = cpu.bus.ppu.pfc.fifo.head.clone().unwrap();
+        let val = head.borrow().value;
+        cpu.bus.ppu.pfc.fifo.head = head.borrow().next.clone();
+
+        cpu.bus.ppu.pfc.fifo.size -= 1;
+        val
+    }
+
+    fn pipeline_push_pixel(cpu: &mut Cpu) {
+        if cpu.bus.ppu.pfc.fifo.size > 8 {
+            let pixel_data = Self::pixel_fifo_pop(cpu);
+
+            if cpu.bus.ppu.pfc.line_x >= cpu.bus.lcd.scx % 8 {
+                cpu.bus.ppu.video_buffer[cpu
+                    .bus
+                    .ppu
+                    .pfc
+                    .pushed_x
+                    .wrapping_add((cpu.bus.lcd.ly as i32 * XRES) as u8)
+                    as usize] = pixel_data;
+
+                cpu.bus.ppu.pfc.pushed_x += 1;
+            }
+
+            cpu.bus.ppu.pfc.line_x += 1;
+        }
+    }
+
+    fn pipeline_fetch(cpu: &mut Cpu) {
+        let fetch_state = &cpu.bus.ppu.pfc.current_fetch_state;
+
+        match fetch_state {
+            FetchState::Tile => {
+                if cpu.bus.lcd.bgw_enabled() != 0 {
+                    let address = cpu.bus.lcd.bg_map_area()
+                        + (cpu.bus.ppu.pfc.map_x / 8) as u16
+                        + ((cpu.bus.ppu.pfc.map_y / 8) as u16 * 32);
+                    cpu.bus.ppu.pfc.bgw_fetch_data[0] = Bus::read(cpu, address);
+
+                    if cpu.bus.lcd.bgw_data_area() == 0x8800 {
+                        cpu.bus.ppu.pfc.bgw_fetch_data[0] =
+                            cpu.bus.ppu.pfc.bgw_fetch_data[0].wrapping_add(128);
+                    }
+                }
+
+                cpu.bus.ppu.pfc.current_fetch_state = FetchState::Data0;
+                cpu.bus.ppu.pfc.fetch_x = cpu.bus.ppu.pfc.fetch_x.wrapping_add(8);
+            }
+            FetchState::Data0 => {
+                let address = cpu.bus.lcd.bgw_data_area()
+                    + (cpu.bus.ppu.pfc.bgw_fetch_data[0] as u16 * 16)
+                    + (cpu.bus.ppu.pfc.tile_y) as u16;
+                cpu.bus.ppu.pfc.bgw_fetch_data[1] = Bus::read(cpu, address);
+
+                cpu.bus.ppu.pfc.current_fetch_state = FetchState::Data1;
+            }
+            FetchState::Data1 => {
+                let address = cpu.bus.lcd.bgw_data_area()
+                    + (cpu.bus.ppu.pfc.bgw_fetch_data[0] as u16 * 16)
+                    + (cpu.bus.ppu.pfc.tile_y + 1) as u16;
+                cpu.bus.ppu.pfc.bgw_fetch_data[2] = Bus::read(cpu, address);
+
+                cpu.bus.ppu.pfc.current_fetch_state = FetchState::Idle;
+            }
+            FetchState::Idle => {
+                cpu.bus.ppu.pfc.current_fetch_state = FetchState::Push;
+            }
+            FetchState::Push => {
+                if Self::pipeline_fifo_add(cpu) {
+                    cpu.bus.ppu.pfc.current_fetch_state = FetchState::Tile;
+                }
+            }
+        }
+    }
+
+    fn pipeline_fifo_add(cpu: &mut Cpu) -> bool {
+        if cpu.bus.ppu.pfc.fifo.size > 8 {
+            // FiFo is Full
+            return false;
+        }
+
+        let x: i8 = (cpu
+            .bus
+            .ppu
+            .pfc
+            .fetch_x
+            .wrapping_sub(8 - (cpu.bus.lcd.scx % 8))) as i8;
+
+        for i in 0..8 {
+            let bit = 7 - i;
+            let lo: u8 = (cpu.bus.ppu.pfc.bgw_fetch_data[1] & (1 << bit) != 0) as u8;
+            let hi: u8 = ((cpu.bus.ppu.pfc.bgw_fetch_data[2] & (1 << bit)) << 1 != 0) as u8;
+
+            let color: Color = TILE_COLORS[(hi | lo) as usize];
+
+            if x >= 0 {
+                Self::pixel_fifo_push(cpu, color);
+                cpu.bus.ppu.pfc.fifo_x += 1;
+            }
+        }
+
+        true
+    }
+
+    fn pipeline_process(cpu: &mut Cpu) {
+        let ppu = &mut cpu.bus.ppu;
+        let lcd = &mut cpu.bus.lcd;
+
+        ppu.pfc.map_y = lcd.ly.wrapping_add(lcd.scy);
+        ppu.pfc.map_x = ppu.pfc.fetch_x.wrapping_add(lcd.scx);
+        ppu.pfc.tile_y = ((lcd.ly.wrapping_add(lcd.scy)) % 8) * 2;
+
+        if ppu.line_ticks & 1 == 0 {
+            Self::pipeline_fetch(cpu);
+        }
+
+        Self::pipeline_push_pixel(cpu);
+    }
+
+    fn pipeline_fifo_reset(cpu: &mut Cpu) {
+        while cpu.bus.ppu.pfc.fifo.size > 0 {
+            Self::pixel_fifo_pop(cpu);
+        }
+
+        cpu.bus.ppu.pfc.fifo.head = None;
+    }
 }
 
 pub enum FetchState {

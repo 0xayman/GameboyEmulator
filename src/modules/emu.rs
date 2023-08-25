@@ -11,6 +11,11 @@ const SCREEN_WIDTH: u32 = 1024;
 const SCREEN_HEIGHT: u32 = 768;
 const SCALE: u16 = 4;
 
+const LINES_PER_FRAME: u32 = 154;
+const TICKS_PER_LINE: u32 = 456;
+const YRES: i32 = 144;
+const XRES: i32 = 160;
+
 const TILE_COLORS: [Color; 4] = [
     Color::RGB(255, 255, 255),
     Color::RGB(175, 175, 175),
@@ -45,15 +50,12 @@ impl Emu {
         let video_subsystem = sdl_context.video().unwrap();
         let _ttf_context = sdl2::ttf::init().unwrap();
 
-        // let main_window = video_subsystem
-        //     .window("Gameboy Emulator", SCREEN_WIDTH, SCREEN_HEIGHT)
-        //     .position_centered()
-        //     .opengl()
-        //     .build()
-        //     .unwrap();
-
-        // let x_pos = main_window.position().0 + main_window.size().0 as i32;
-        // let y_pos = main_window.position().1;
+        let main_window = video_subsystem
+            .window("Gameboy Emulator", SCREEN_WIDTH, SCREEN_HEIGHT)
+            .position_centered()
+            .opengl()
+            .build()
+            .unwrap();
 
         let debug_window = video_subsystem
             .window("Debug", 584, 864)
@@ -62,12 +64,12 @@ impl Emu {
             .build()
             .unwrap();
 
-        // let mut canvas1 = main_window.into_canvas().build().unwrap();
+        let mut canvas = main_window.into_canvas().build().unwrap();
         let mut dbg_canvas = debug_window.into_canvas().build().unwrap();
 
-        // canvas1.set_draw_color(Color::RGB(0, 0, 0));
-        // canvas1.clear();
-        // canvas1.present();
+        canvas.set_draw_color(Color::RGB(0, 0, 0));
+        canvas.clear();
+        canvas.present();
 
         dbg_canvas.set_draw_color(Color::RGB(17, 17, 17));
         dbg_canvas.clear();
@@ -99,7 +101,7 @@ impl Emu {
             }
 
             if prev_frame != cpu.bus.ppu.current_frame {
-                Self::update_ui(&cpu, &mut dbg_canvas);
+                Self::update_ui(&cpu, &mut dbg_canvas, &mut canvas);
                 dbg_canvas.present();
             }
 
@@ -140,8 +142,34 @@ impl Emu {
         }
     }
 
-    fn update_ui(cpu: &Cpu, canvas: &mut sdl2::render::Canvas<sdl2::video::Window>) {
-        Self::update_debug_window(cpu, canvas);
+    fn update_ui(
+        cpu: &Cpu,
+        debug_canvas: &mut sdl2::render::Canvas<sdl2::video::Window>,
+        canvas: &mut sdl2::render::Canvas<sdl2::video::Window>,
+    ) {
+        let video_buffer = cpu.bus.ppu.video_buffer;
+
+        for line_num in 0..YRES {
+            for x in 0..XRES {
+                let rect = sdl2::rect::Rect::new(
+                    x * SCALE as i32,
+                    line_num * SCALE as i32,
+                    SCALE as u32,
+                    SCALE as u32,
+                );
+
+                // Convert video_buffer at index x + (line_num * XRES) to a color
+                // it is a u32 value
+                // let color = TILE_COLORS[video_buffer[(x + (line_num * XRES)) as usize] as usize];
+                let color = video_buffer[(x + (line_num * XRES)) as usize];
+
+                canvas.set_draw_color(color);
+                canvas.fill_rect(rect).unwrap();
+            }
+        }
+        canvas.present();
+
+        Self::update_debug_window(cpu, debug_canvas);
     }
 
     fn display_tile(

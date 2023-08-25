@@ -20,8 +20,10 @@ impl IO {
             0xFF04..=0xFF07 => Timer::read(cpu, address),
             0xFF0F => cpu.interrupt_flags,
             0xFF40..=0xFF4B => Lcd::read(cpu, address),
-
-            _ => unimplemented!(),
+            _ => {
+                // println!("Address is not implemented for IO read: {:X}", address);
+                0
+            }
         }
     }
 

@@ -43,8 +43,8 @@ impl Cart {
         self.data[address as usize]
     }
 
-    pub fn write(&mut self, address: u16, data: u8) {
-        println!("UNSUPPORTED CART WRITE {:04X} Data: {:02X}", address, data)
+    pub fn write(&mut self, _address: u16, _data: u8) {
+        // println!("UNSUPPORTED CART WRITE {:04X} Data: {:02X}", address, data)
     }
 
     pub fn load(&mut self, filename: &str) -> bool {
